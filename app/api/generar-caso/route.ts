@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { ClinicalCase } from "@/types/case";
 import { caseGenerationPrompts } from "@/lib/prompts";
+import { generateCaseWithRAG } from "@/lib/assistant";
 
 export async function POST(req: Request) {
   try {
@@ -14,6 +15,39 @@ export async function POST(req: Request) {
       nivel_dificultad?: ClinicalCase["nivel_dificultad"];
     };
 
+    // Si es APS, usar Assistant API con RAG
+    if (especialidad === "aps") {
+      const prompt = `${caseGenerationPrompts.system(especialidad, nivel_dificultad)}
+
+${caseGenerationPrompts.user()}`;
+
+      const output = await generateCaseWithRAG(
+        especialidad,
+        nivel_dificultad,
+        prompt
+      );
+
+      if (!output) {
+        throw new Error("No se recibió respuesta del modelo");
+      }
+
+      // Extraer el JSON de la respuesta (puede venir con texto adicional)
+      const jsonMatch = output.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : output;
+      
+      const clinicalCase = JSON.parse(jsonString) as ClinicalCase;
+      if (!clinicalCase.paciente || !clinicalCase.motivo_consulta) {
+        throw new Error("Caso incompleto");
+      }
+
+      if (!clinicalCase.id) {
+        clinicalCase.id = `case-aps-${Date.now()}`;
+      }
+
+      return NextResponse.json(clinicalCase, { status: 200 });
+    }
+
+    // Para otras especialidades, usar el método tradicional
     const response = await openai.chat.completions.create({
       model: "gpt-4.1",
       messages: [
