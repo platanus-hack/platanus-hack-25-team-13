@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
 import type { ClinicalCase, ChatMessage } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
+import Diagnostico from "../../components/anamnesis/Diagnostico";
+import Feedback from "../../components/anamnesis/Feedback";
 import ChatInput from "../../components/anamnesis/ChatInput";
 import ChatAvatar from "../../components/anamnesis/ChatAvatar";
 import Stepper from "../../components/Stepper";
@@ -88,6 +90,45 @@ export default function AnamnesisPage() {
       ]);
     }, 2000);
   };
+
+  const handleNextStep = () => {
+    if (currentStep === 1) {
+      setCurrentStep(2);
+      setMessages([]);
+      setTimeout(() => {
+        setMessages([
+          {
+            role: "assistant",
+            content: "Según lo hablado durante la consulta, necesito que proporciones tu diagnóstico. Por favor, indica cuál es diagnóstico principal y explica las razones que te llevaron a esta conclusión.",
+            timestamp: new Date(),
+          },
+        ]);
+      }, 2000);
+    } else if (currentStep === 2) {
+      setCurrentStep(3);
+      setMessages([]);
+      setTimeout(() => {
+        setMessages([
+          {
+            role: "assistant",
+            content: "Ahora recibirás el feedback sobre tu diagnóstico y el proceso de consulta realizado.",
+            timestamp: new Date(),
+          },
+        ]);
+      }, 2000);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__DEV_NEXT_STEP = handleNextStep;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__DEV_NEXT_STEP;
+      }
+    };
+  }, [currentStep]);
 
   async function handleSend() {
     if (!input.trim() || loading) return;
@@ -174,6 +215,25 @@ export default function AnamnesisPage() {
             <div className="w-[70%]">
               <Consulta clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
             </div>
+          </div>
+        )}
+        
+        {currentStep === 2 && (
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-220px)]">
+            <div className="w-[30%] flex-shrink-0">
+              <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
+                <ChatAvatar />
+              </div>
+            </div>
+            <div className="w-[70%]">
+              <Diagnostico clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
+            </div>
+          </div>
+        )}
+        
+        {currentStep === 3 && (
+          <div className="w-full max-w-5xl">
+            <Feedback clinicalCase={clinicalCase} />
           </div>
         )}
       </div>

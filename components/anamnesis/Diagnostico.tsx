@@ -4,7 +4,7 @@ import type { ClinicalCase, ChatMessage } from "@/types/case";
 import ChatBox from "./ChatBox";
 import ChatInput from "./ChatInput";
 
-interface ConsultaProps {
+interface DiagnosticoProps {
   clinicalCase: ClinicalCase;
   messages: ChatMessage[];
   loading: boolean;
@@ -14,12 +14,12 @@ interface ConsultaProps {
   loadingInput: boolean;
 }
 
-export default function Consulta({ clinicalCase, messages, loading, input, onInputChange, onSend, loadingInput }: ConsultaProps) {
+export default function Diagnostico({ clinicalCase, messages, loading, input, onInputChange, onSend, loadingInput }: DiagnosticoProps) {
   return (
     <div className="w-full h-full bg-[#ffffff] rounded-lg shadow-lg border-[0.5px] border-[#1098f7] flex flex-col">
       <div className="p-4 pb-3 border-b-[0.5px] border-[#1098f7] flex-shrink-0 flex items-center justify-between">
         <h2 className="text-xl font-bold text-[#00072d]">
-          Consulta
+          Diagnóstico
         </h2>
         <button
           onClick={() => {
