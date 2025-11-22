@@ -1,11 +1,17 @@
 export interface ClinicalCase {
   id: string;
   especialidad: "aps" | "urgencia" | "hospitalizacion" | "otro";
-  aps_subcategoria?: "cardiovascular" | "respiratorio" | "metabolico" | "salud_mental" | "musculoesqueletico" | "general";
+  aps_subcategoria?:
+    | "cardiovascular"
+    | "respiratorio"
+    | "metabolico"
+    | "salud_mental"
+    | "musculoesqueletico"
+    | "general";
   nivel_dificultad: "facil" | "medio" | "dificil";
   paciente: {
     edad: number;
-    sexo:  "masculino" | "femenino" | "otro";
+    sexo: "masculino" | "femenino" | "otro";
     ocupacion: string;
     contexto_ingreso: string;
   };
@@ -30,10 +36,13 @@ export interface ClinicalCase {
     };
     hallazgos_relevantes: string[];
   };
-  examenes: Record<string, {
-    realizado: boolean;
-    resultado?: string;
-  }>;
+  examenes: Record<
+    string,
+    {
+      realizado: boolean;
+      resultado?: string;
+    }
+  >;
   diagnostico_principal: string;
   diagnosticos_diferenciales: string[];
   info_oculta: string[];
@@ -53,7 +62,11 @@ export interface ClinicalCase {
     };
     derivacion: {
       requiere_derivacion: boolean;
-      tipo_derivacion?: "ambulatoria_especialista" | "urgencia" | "hospitalizacion" | "no_requiere";
+      tipo_derivacion?:
+        | "ambulatoria_especialista"
+        | "urgencia"
+        | "hospitalizacion"
+        | "no_requiere";
       criterios: string[];
       red_flags: string[];
     };
@@ -106,4 +119,21 @@ export interface FeedbackResult {
     considero_factores_psicosociales?: boolean;
     comentario: string;
   };
+}
+
+export interface PatientContext {
+  clinicalCase: ClinicalCase;
+  personalityTraits?: string[];
+}
+
+export type SimulationStatus = "active" | "completed" | "abandoned";
+
+export interface Simulation {
+  id: string;
+  clinicalCase: ClinicalCase;
+  patientContext: PatientContext;
+  chatHistory: ChatMessage[];
+  status: SimulationStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }

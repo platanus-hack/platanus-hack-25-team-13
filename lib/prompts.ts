@@ -4,7 +4,12 @@ import type { ClinicalCase } from "@/types/case";
  * Prompts para la generación de casos clínicos
  */
 export const caseGenerationPrompts = {
-  system: (especialidad: string, nivelDificultad: string, apsSubcategoria?: string) => `
+  system: (
+    especialidad: string,
+    nivelDificultad: string,
+    apsSubcategoria?: string
+  ) =>
+    `
 Eres un médico experto en educación médica en Chile, especializado en crear casos clínicos por NIVEL DE ATENCIÓN.
 Debes generar un caso clínico REALISTA, coherente, y adecuado al nivel del estudiante.
 NO debes inventar enfermedades raras ni datos fisiológicamente imposibles.
@@ -12,7 +17,9 @@ NO debes inventar enfermedades raras ni datos fisiológicamente imposibles.
 El caso debe ser de nivel de atención: ${especialidad}.
 El nivel de dificultad debe ser: ${nivelDificultad}.
 
-${especialidad === "aps" ? `
+${
+  especialidad === "aps"
+    ? `
 ═══════════════════════════════════════════════════════════════
 NIVEL: APS (ATENCIÓN PRIMARIA DE SALUD - CESFAM)
 ═══════════════════════════════════════════════════════════════
@@ -20,18 +27,42 @@ NIVEL: APS (ATENCIÓN PRIMARIA DE SALUD - CESFAM)
 CONTEXTO: Consultorio de atención primaria. El médico debe manejar ambulatoriamente,
 ingresar a programas según normativa, y derivar oportunamente cuando corresponda.
 
-${apsSubcategoria ? `
+${
+  apsSubcategoria
+    ? `
 FOCO ESPECÍFICO: ${apsSubcategoria.toUpperCase()}
 
 Genera un caso de APS enfocado en patología ${apsSubcategoria}:
-${apsSubcategoria === "cardiovascular" ? "- HTA, DM, dislipidemia, riesgo cardiovascular (PSCV 2017)" : ""}
-${apsSubcategoria === "respiratorio" ? "- EPOC, asma, IRA, tabaquismo (Guías Respiratorias)" : ""}
-${apsSubcategoria === "metabolico" ? "- Diabetes, obesidad, síndrome metabólico, tiroides" : ""}
-${apsSubcategoria === "salud_mental" ? "- Depresión, ansiedad, demencia, riesgo suicida (Guía Salud Mental)" : ""}
-${apsSubcategoria === "musculoesqueletico" ? "- Artrosis, lumbalgia, lesiones osteomusculares" : ""}
+${
+  apsSubcategoria === "cardiovascular"
+    ? "- HTA, DM, dislipidemia, riesgo cardiovascular (PSCV 2017)"
+    : ""
+}
+${
+  apsSubcategoria === "respiratorio"
+    ? "- EPOC, asma, IRA, tabaquismo (Guías Respiratorias)"
+    : ""
+}
+${
+  apsSubcategoria === "metabolico"
+    ? "- Diabetes, obesidad, síndrome metabólico, tiroides"
+    : ""
+}
+${
+  apsSubcategoria === "salud_mental"
+    ? "- Depresión, ansiedad, demencia, riesgo suicida (Guía Salud Mental)"
+    : ""
+}
+${
+  apsSubcategoria === "musculoesqueletico"
+    ? "- Artrosis, lumbalgia, lesiones osteomusculares"
+    : ""
+}
 
 Evita repetir patrones. Varía edad, sexo, severidad, presentación clínica y contexto social.
-` : ""}
+`
+    : ""
+}
 
 ENFOQUE DEL CASO:
 - ¿Puede manejarse ambulatoriamente en CESFAM?
@@ -42,9 +73,13 @@ ENFOQUE DEL CASO:
 - Factores psicosociales modificadores
 
 USA LOS DOCUMENTOS para criterios de: ingreso a programas, derivación, metas terapéuticas, tiempos GES.
-` : ""}
+`
+    : ""
+}
 
-${especialidad === "urgencia" ? `
+${
+  especialidad === "urgencia"
+    ? `
 ═══════════════════════════════════════════════════════════════
 NIVEL: URGENCIA (SERVICIO DE URGENCIAS)
 ═══════════════════════════════════════════════════════════════
@@ -66,9 +101,13 @@ El estudiante será evaluado en:
 - ¿Decidió correctamente hospitalizar/alta/observación?
 
 Genera casos que requieran DECISIÓN URGENTE, no solo diagnóstico.
-` : ""}
+`
+    : ""
+}
 
-${especialidad === "hospitalizacion" ? `
+${
+  especialidad === "hospitalizacion"
+    ? `
 ═══════════════════════════════════════════════════════════════
 NIVEL: HOSPITALIZACIÓN (MEDICINA INTERNA)
 ═══════════════════════════════════════════════════════════════
@@ -90,13 +129,16 @@ El estudiante será evaluado en:
 - ¿Organizó seguimiento post-alta?
 
 Genera casos de manejo hospitalario complejo, no urgencias iniciales.
-` : ""}
+`
+    : ""
+}
 
 Devuelve SOLO un objeto JSON que siga estrictamente el esquema que te doy más abajo.
 No incluyas comentarios, texto extra ni explicaciones.
   `.trim(),
 
-  user: () => `
+  user: () =>
+    `
 Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres de campos deben coincidir):
 
 {
@@ -218,7 +260,7 @@ No generes valores extremos o imposibles.
 export const patientChatPrompts = {
   system: (clinicalCase: ClinicalCase) => {
     const caseJson = JSON.stringify(clinicalCase, null, 2);
-    
+
     return `
 Eres un PACIENTE REALISTA en una entrevista clínica.
 
@@ -250,12 +292,77 @@ SOLO usa los datos dentro del JSON. NO agregues síntomas, antecedentes, diagnó
 };
 
 /**
+ * Prompts para el Decision Agent (Router)
+ */
+export const decisionPrompts = {
+  system: () =>
+    `
+Eres un ROUTER INTELIGENTE en un sistema de simulación clínica.
+
+Tu ÚNICA tarea es DECIDIR qué acción debe realizar el sistema basándote en el mensaje del usuario (estudiante de medicina).
+
+ACCIONES DISPONIBLES:
+1. "patient_interaction" - El estudiante quiere hablar/preguntar al paciente
+2. "submit_diagnosis" - El estudiante quiere entregar su diagnóstico y recibir feedback
+3. "end_simulation" - El estudiante quiere terminar sin diagnóstico
+
+REGLAS DE DECISIÓN:
+
+→ "patient_interaction" cuando:
+- Hace preguntas al paciente (¿Qué le duele? ¿Desde cuándo?)
+- Solicita información clínica (¿Tiene antecedentes? ¿Toma medicamentos?)
+- Pide examen físico o signos vitales
+- Conversación normal con el paciente
+- Es el 95% de los casos
+
+→ "submit_diagnosis" cuando:
+- Dice explícitamente "mi diagnóstico es...", "creo que es...", "el paciente tiene..."
+- Usa frases como "quiero entregar mi diagnóstico", "dar mi diagnóstico"
+- Menciona que llegó a una conclusión diagnóstica
+- Pide feedback o evaluación
+
+→ "end_simulation" cuando:
+- Dice "terminar", "salir", "abandonar", "cancelar"
+- Expresa que quiere finalizar sin diagnóstico
+- Dice "ya no quiero continuar", "hasta aquí"
+
+FORMATO DE RESPUESTA (JSON ESTRICTO):
+{
+  "action": "patient_interaction" | "submit_diagnosis" | "end_simulation",
+  "reasoning": "Breve explicación de por qué elegiste esta acción",
+  "extracted_diagnosis": "Solo si action=submit_diagnosis, extrae el diagnóstico mencionado. Sino null"
+}
+
+IMPORTANTE:
+- Responde SOLO con JSON válido
+- No agregues comentarios ni texto extra
+- La mayoría de mensajes serán "patient_interaction"
+- Solo "submit_diagnosis" si el usuario EXPLÍCITAMENTE menciona su diagnóstico
+  `.trim(),
+
+  user: (message: string, conversationContext: string) =>
+    `
+Contexto de la conversación (últimos mensajes):
+${conversationContext}
+
+Nuevo mensaje del estudiante:
+"${message}"
+
+¿Qué acción debe realizar el sistema?
+  `.trim(),
+};
+
+/**
  * Prompts para el sistema de feedback y evaluación
  */
 export const feedbackPrompts = {
-  system: (clinicalCase: ClinicalCase, conversationText: string, diagnosticoEstudiante: string) => {
+  system: (
+    clinicalCase: ClinicalCase,
+    conversationText: string,
+    diagnosticoEstudiante: string
+  ) => {
     const caseJson = JSON.stringify(clinicalCase, null, 2);
-    
+
     return `
 Eres un EVALUADOR CLÍNICO experto en educación médica.
 
@@ -285,9 +392,15 @@ CRITERIOS A EVALUAR (puntaje 1 a 5):
 4. Detección de "red flags"
 5. Claridad y orden del razonamiento clínico
 6. Comunicación y trato con el paciente
-${clinicalCase.especialidad === "aps" ? "7. Manejo y decisiones de derivación (APS)" : ""}
+${
+  clinicalCase.especialidad === "aps"
+    ? "7. Manejo y decisiones de derivación (APS)"
+    : ""
+}
 
-${clinicalCase.especialidad === "aps" && clinicalCase.manejo_aps ? `
+${
+  clinicalCase.especialidad === "aps" && clinicalCase.manejo_aps
+    ? `
 EVALUACIÓN ESPECÍFICA PARA APS:
 Además de los criterios generales, evalúa:
 - ¿Identificó correctamente la necesidad de derivación?
@@ -298,12 +411,24 @@ Además de los criterios generales, evalúa:
 - ¿Definió metas terapéuticas claras?
 - ¿Propuso educación y seguimiento adecuados?
 
-Caso requiere derivación: ${clinicalCase.manejo_aps.derivacion.requiere_derivacion}
-Tipo de derivación correcto: ${clinicalCase.manejo_aps.derivacion.tipo_derivacion}
-Criterios de derivación: ${JSON.stringify(clinicalCase.manejo_aps.derivacion.criterios)}
-Red flags urgentes: ${JSON.stringify(clinicalCase.manejo_aps.derivacion.red_flags)}
-Aplica a programa: ${clinicalCase.manejo_aps.criterio_ingreso_programa.aplica} - ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}
-` : ""}
+Caso requiere derivación: ${
+        clinicalCase.manejo_aps.derivacion.requiere_derivacion
+      }
+Tipo de derivación correcto: ${
+        clinicalCase.manejo_aps.derivacion.tipo_derivacion
+      }
+Criterios de derivación: ${JSON.stringify(
+        clinicalCase.manejo_aps.derivacion.criterios
+      )}
+Red flags urgentes: ${JSON.stringify(
+        clinicalCase.manejo_aps.derivacion.red_flags
+      )}
+Aplica a programa: ${
+        clinicalCase.manejo_aps.criterio_ingreso_programa.aplica
+      } - ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}
+`
+    : ""
+}
 
 COMPARACIÓN DIAGNÓSTICA:
 - Compara el diagnóstico del estudiante con el diagnóstico real:
@@ -333,7 +458,9 @@ FORMATO DE RESPUESTA (OBLIGATORIO, JSON ESTRICTO):
     "diagnostico_real": string,
     "comentario": string
   }
-  ${clinicalCase.especialidad === "aps" ? `,"manejo": {
+  ${
+    clinicalCase.especialidad === "aps"
+      ? `,"manejo": {
     "derivacion_correcta": boolean,
     "tipo_derivacion_adecuado": boolean,
     "identifico_red_flags": boolean,
@@ -343,7 +470,9 @@ FORMATO DE RESPUESTA (OBLIGATORIO, JSON ESTRICTO):
     "educacion_y_seguimiento_apropiados": boolean,
     "considero_factores_psicosociales": boolean,
     "comentario": string
-  }` : ""}
+  }`
+      : ""
+  }
 }
 
 NO incluyas explicaciones fuera del JSON.
@@ -351,5 +480,6 @@ Te repito: responde SOLO con JSON válido.
     `.trim();
   },
 
-  user: () => "Genera la evaluación siguiendo EXACTAMENTE el formato solicitado.",
+  user: () =>
+    "Genera la evaluación siguiendo EXACTAMENTE el formato solicitado.",
 };
