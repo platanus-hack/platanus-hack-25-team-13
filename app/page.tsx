@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaStethoscope, FaClock, FaCheckCircle, FaTimesCircle, FaUser, FaArrowRight } from "react-icons/fa";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Dot } from "recharts";
-import LoadingScreen from "./components/utils/LoadingScreen";
+import LoadingScreen from "../components/utils/LoadingScreen";
 
 export default function Home() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function Home() {
     setIsLoading(true);
     // Después de 3 segundos, navegar a antecedentes médicos
     setTimeout(() => {
-      router.push("/antecedentes-medicos");
+      router.push("/anamnesis");
     }, 3000);
   };
 
@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <>
       {isLoading && <LoadingScreen />}
-      <div className="h-[85vh] bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] font-sans overflow-hidden flex flex-col">
+      <div className="h-[85vh] font-sans overflow-hidden flex flex-col">
       <main className="flex-1 overflow-hidden min-h-0">
         <div className="h-full max-w-7xl mx-auto px-2 py-1.5 flex flex-col">
           {/* Saludo de Bienvenida */}
@@ -290,7 +290,7 @@ export default function Home() {
                       <button
                         onClick={() => {
                           // Aquí puedes agregar la lógica para revisar el caso
-                          router.push(`/antecedentes-medicos?id=${simulacion.id}`);
+                          router.push(`/anamnesis?id=${simulacion.id}`);
                         }}
                         className="flex items-center gap-1 text-[#1098f7] hover:text-[#0d7fd6] text-[10px] font-medium hover:underline transition-all duration-200"
                       >
