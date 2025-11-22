@@ -168,13 +168,24 @@ export function getImagePath(
     return imageType;
   }
 
-  // Si el paciente es masculino, usar carpeta "hombre"
-  const finalBasePath = sexo === "masculino" ? `${basePath}/hombre` : basePath;
-
-  // Manejar typo en el nombre del archivo (soprendido vs sorprendido)
+  // Determinar la carpeta según el sexo
+  let finalBasePath = basePath;
   let fileName = imageType;
-  if (imageType === "sorprendido" && sexo === "masculino") {
-    fileName = "soprendido"; // Corregir typo en carpeta hombre
+
+  if (sexo === "masculino") {
+    // Usar carpeta "hombre"
+    finalBasePath = `${basePath}/hombre`;
+    // Manejar typo en el nombre del archivo (soprendido vs sorprendido)
+    if (imageType === "sorprendido") {
+      fileName = "soprendido";
+    }
+  } else if (sexo === "femenino") {
+    // Usar carpeta "mujer"
+    finalBasePath = `${basePath}/mujer`;
+    // En carpeta mujer, "sorprendido" se llama "sorprendida"
+    if (imageType === "sorprendido") {
+      fileName = "sorprendida";
+    }
   }
 
   // Si es un tipo predefinido, construir la ruta
