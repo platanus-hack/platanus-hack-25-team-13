@@ -7,6 +7,7 @@ import type { ClinicalCase, ChatMessage } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
 import ChatInput from "../../components/anamnesis/ChatInput";
+import ChatAvatar from "../../components/anamnesis/ChatAvatar";
 import Stepper from "../../components/Stepper";
 
 export default function AnamnesisPage() {
@@ -135,9 +136,9 @@ export default function AnamnesisPage() {
         </div>
       </div>
       
-      <div className="flex-1 flex flex-col items-center pt-32 pb-4 p-4">
+      <div className="flex-1 flex flex-col items-center pt-40 pb-4 p-4">
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] -mt-8">
             <AntecedentesMedicos
               nombre={pacienteData.nombre}
               edad={pacienteData.edad}
@@ -161,8 +162,15 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 1 && (
-          <div className="w-full max-w-4xl">
-            <Consulta clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-220px)]">
+            <div className="w-[30%] flex-shrink-0">
+              <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
+                <ChatAvatar />
+              </div>
+            </div>
+            <div className="w-[70%]">
+              <Consulta clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
+            </div>
           </div>
         )}
       </div>
