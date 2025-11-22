@@ -131,16 +131,15 @@ export default function AnamnesisPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
-      <div className="fixed top-20 left-0 right-0 z-10 flex justify-center pt-2 pb-2">
-        <div className="w-full max-w-2xl px-4">
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
+        <div className="w-full max-w-3xl">
           <Stepper steps={steps} currentStep={currentStep} />
-
         </div>
       </div>
       
-      <div className="flex-1 flex flex-col items-center pt-40 pb-4 p-4">
+      <div className="flex-1 flex flex-col items-center pb-20 pt-4 p-4">
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] -mt-12">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] mt-4">
             <AntecedentesMedicos
               nombre={pacienteData.nombre}
               edad={pacienteData.edad}
@@ -164,10 +163,16 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 1 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-220px)]">
-            <div className="w-[30%] shrink-0">
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] mt-20">
+            <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                <ChatAvatar />
+                <ChatAvatar 
+                  step={currentStep} 
+                  loading={loading}
+                  lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
+                    ? (messages[messages.length - 1].role as "user" | "assistant")
+                    : undefined}
+                />
               </div>
             </div>
             <div className="w-[70%]">
@@ -177,10 +182,17 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 2 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-220px)]">
-            <div className="w-[30%] shrink-0">
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] mt-4">
+            <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                <ChatAvatar />
+                <ChatAvatar 
+                  step={currentStep} 
+                  loading={loading}
+                  expression="diagnostico"
+                  lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
+                    ? messages[messages.length - 1].role as "user" | "assistant"
+                    : undefined}
+                />
               </div>
             </div>
             <div className="w-[70%]">
