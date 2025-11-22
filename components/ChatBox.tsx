@@ -1,15 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ClinicalCase, ChatMessage } from "@/types/case";
+import type { ChatMessage, FeedbackResult } from "@/types/case";
 
 interface ChatBoxProps {
-  clinicalCase: ClinicalCase;
+  simulationId: string;
+  initialMessage: string;
   onMessagesChange?: (messages: ChatMessage[]) => void;
+  onFeedbackReceived?: (feedback: FeedbackResult) => void;
 }
 
-export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export default function ChatBox({ 
+  simulationId,
+  initialMessage,
+  onMessagesChange,
+  onFeedbackReceived 
+}: ChatBoxProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      content: initialMessage,
+      timestamp: new Date(),
+    },
+  ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -26,6 +39,17 @@ export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps
     onMessagesChange?.(messages);
   }, [messages, onMessagesChange]);
 
+  // Reset messages when simulationId changes
+  useEffect(() => {
+    setMessages([
+      {
+        role: "assistant",
+        content: initialMessage,
+        timestamp: new Date(),
+      },
+    ]);
+  }, [simulationId, initialMessage]);
+
   async function handleSend() {
     if (!input.trim() || loading) return;
 
@@ -36,32 +60,48 @@ export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput("");
     setLoading(true);
 
     try {
-      // const res = await fetch("/api/chat", {
-      // //   method: "POST",
-      // //   headers: { "Content-Type": "application/json" },
-      // //   body: JSON.stringify({
-      // //     messages: [...messages, userMessage],
-      // //     clinicalCase,
-      // //   }),
-      // // });
+      const res = await fetch("/api/engine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          simulationId,
+          message: currentInput,
+        }),
+      });
 
-      // // if (!res.ok) throw new Error("Error en chat");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error en el engine");
+      }
 
-      // // const data = await res.json();
-      // const assistantMessage: ChatMessage = {
-      //   role: "assistant",
-      //   content: data.message,
-      //   timestamp: new Date(),
-      // };
+      const data = await res.json();
+      
+      if (data.success && data.data) {
+        // If there's a response (patient interaction), add it to messages
+        if (data.data.response) {
+          const assistantMessage: ChatMessage = {
+            role: "assistant",
+            content: data.data.response,
+            timestamp: new Date(data.data.timestamp),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        }
 
-      // setMessages((prev) => [...prev, assistantMessage]);
+        // If there's feedback (diagnosis submitted), notify parent
+        if (data.data.feedback) {
+          onFeedbackReceived?.(data.data.feedback);
+        }
+      }
     } catch (err) {
       console.error(err);
-      alert("Error enviando mensaje");
+      alert(err instanceof Error ? err.message : "Error enviando mensaje");
+      // Remove the user message on error
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }

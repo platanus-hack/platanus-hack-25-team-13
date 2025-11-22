@@ -91,46 +91,20 @@ export default function AnamnesisPage() {
     }, 2000);
   };
 
-  const handleNextStep = () => {
-    if (currentStep === 1) {
-      setCurrentStep(2);
-      setMessages([]);
-      setTimeout(() => {
-        setMessages([
-          {
-            role: "assistant",
-            content: "Según lo hablado durante la consulta, necesito que proporciones tu diagnóstico. Por favor, indica cuál es diagnóstico principal y explica las razones que te llevaron a esta conclusión.",
-            timestamp: new Date(),
-          },
-        ]);
-      }, 2000);
-    } else if (currentStep === 2) {
-      setCurrentStep(3);
-      setMessages([]);
-      setTimeout(() => {
-        setMessages([
-          {
-            role: "assistant",
-            content: "Ahora recibirás el feedback sobre tu diagnóstico y el proceso de consulta realizado.",
-            timestamp: new Date(),
-          },
-        ]);
-      }, 2000);
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).__DEV_NEXT_STEP = handleNextStep;
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        delete (window as any).__DEV_NEXT_STEP;
-      }
-    };
-  }, [currentStep]);
+  // useEffect(() => {
+  //   if (typeof window !== 'undefined') {
+  //     (window as unknown).__DEV_NEXT_STEP = handleNextStep;
+  //   }
+  //   return () => {
+  //     if (typeof window !== 'undefined') {
+  //       delete (window as unknown).__DEV_NEXT_STEP;
+  //     }
+  //   };
+  // }, [currentStep]);
 
   async function handleSend() {
+    // Esta página es solo una demostración con datos de ejemplo.
+    // Para usar el sistema completo con engine inteligente, usa /simulador
     if (!input.trim() || loading) return;
 
     const userMessage: ChatMessage = {
@@ -139,37 +113,20 @@ export default function AnamnesisPage() {
       timestamp: new Date(),
     };
 
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages,
-          clinicalCase,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Error en chat");
-
-      const data = await res.json();
+    // Simulación simple para demo (sin engine)
+    setTimeout(() => {
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: data.message,
+        content: "Esta es una página de demostración. Para usar el sistema completo con engine inteligente, por favor usa la página /simulador que incluye el sistema de simulación con RAG y feedback automático.",
         timestamp: new Date(),
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      console.error(err);
-      alert("Error enviando mensaje");
-    } finally {
       setLoading(false);
-    }
+    }, 1000);
   }
 
   return (
@@ -208,7 +165,7 @@ export default function AnamnesisPage() {
         
         {currentStep === 1 && (
           <div className="w-[90vw] flex gap-6 h-[calc(100vh-220px)]">
-            <div className="w-[30%] flex-shrink-0">
+            <div className="w-[30%] shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
                 <ChatAvatar />
               </div>
@@ -221,7 +178,7 @@ export default function AnamnesisPage() {
         
         {currentStep === 2 && (
           <div className="w-[90vw] flex gap-6 h-[calc(100vh-220px)]">
-            <div className="w-[30%] flex-shrink-0">
+            <div className="w-[30%] shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
                 <ChatAvatar />
               </div>

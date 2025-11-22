@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ClinicalCase, ChatMessage } from "@/types/case";
+import type { ClinicalCase, FeedbackResult } from "@/types/case";
 import ChatBox from "@/components/ChatBox";
 
 interface ClinicalCaseResponse {
@@ -10,7 +10,7 @@ interface ClinicalCaseResponse {
   data: {
     simulationId: string;
     initialMessage: string;
-    simulationDebug?: ClinicalCase
+    "simulation-debug"?: Simulation;
     patientInfo: {
       edad: number;
       sexo: string;
@@ -18,18 +18,24 @@ interface ClinicalCaseResponse {
       contexto_ingreso: string;
     };
     createdAt: Date;
-    especialidad: "medicina_interna" | "urgencia" | "respiratorio" | "digestivo" | "otro";
+    especialidad: "aps" | "urgencia" | "hospitalizacion" | "otro";
     nivel_dificultad: "facil" | "medio" | "dificil";
+    aps_subcategoria?: "cardiovascular" | "respiratorio" | "metabolico" | "salud_mental" | "musculoesqueletico" | "general";
   };
+}
+
+interface Simulation {
+  id: string;
+  clinicalCase: ClinicalCase;
 }
 
 export default function SimuladorPage() {
   const [clinicalCase, setClinicalCase] = useState<ClinicalCaseResponse["data"] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [diagnosticoEstudiante, setDiagnosticoEstudiante] = useState("");
   const [showDiagnostico, setShowDiagnostico] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackFromEngine, setFeedbackFromEngine] = useState<FeedbackResult | null>(null);
   const [especialidad, setEspecialidad] = useState<ClinicalCase["especialidad"]>("aps");
   const [nivelDificultad, setNivelDificultad] = useState<ClinicalCase["nivel_dificultad"]>("medio");
   const router = useRouter();
@@ -38,7 +44,6 @@ export default function SimuladorPage() {
     setLoading(true);
     setShowDiagnostico(false);
     setDiagnosticoEstudiante("");
-    setChatMessages([]);
     try {
       const res = await fetch("/api/generar-caso", {
         method: "POST",
@@ -60,45 +65,73 @@ export default function SimuladorPage() {
     }
   }
 
+  function handleFeedbackReceived(feedback: FeedbackResult) {
+    setFeedbackFromEngine(feedback);
+    // Guardar en sessionStorage para la página de resultados
+    const simulationDebug = clinicalCase?.["simulation-debug"];
+    sessionStorage.setItem("feedbackData", JSON.stringify({
+      feedback,
+      clinicalCase: simulationDebug?.clinicalCase || null,
+      diagnosticoEstudiante: diagnosticoEstudiante || feedback.diagnostico.estudiante,
+    }));
+    
+    // Redirigir automáticamente a resultados cuando se recibe feedback
+    router.push("/resultados");
+  }
+
   async function handleFinalizarYFeedback() {
-    if (!clinicalCase || !diagnosticoEstudiante.trim()) {
+    if (!clinicalCase) {
+      alert("Por favor genera un caso primero");
+      return;
+    }
+
+    // Si ya tenemos feedback del engine (diagnóstico enviado por chat), usarlo
+    if (feedbackFromEngine) {
+      const simulationDebug = clinicalCase?.["simulation-debug"];
+      sessionStorage.setItem("feedbackData", JSON.stringify({
+        feedback: feedbackFromEngine,
+        clinicalCase: simulationDebug?.clinicalCase || null,
+        diagnosticoEstudiante: diagnosticoEstudiante || feedbackFromEngine.diagnostico.estudiante,
+      }));
+      router.push("/resultados");
+      return;
+    }
+
+    // Si no hay feedback y hay diagnóstico en el formulario, enviarlo automáticamente por chat
+    if (!diagnosticoEstudiante.trim()) {
       alert("Por favor ingresa un diagnóstico antes de finalizar");
       return;
     }
 
-    if (chatMessages.length === 0) {
-      alert("Debes conversar con el paciente antes de finalizar");
-      return;
-    }
-
+    // Enviar el diagnóstico al engine para que genere feedback automáticamente
     setFeedbackLoading(true);
     try {
-      const res = await fetch("/api/feeedback", {
+      const res = await fetch("/api/engine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clinicalCase,
-          messages: chatMessages,
-          diagnostico_estudiante: diagnosticoEstudiante,
+          simulationId: clinicalCase.simulationId,
+          message: `Mi diagnóstico es: ${diagnosticoEstudiante}`,
         }),
       });
 
-      if (!res.ok) throw new Error("Error generando feedback");
-      
-      const feedbackData = await res.json();
-      
-      // Guardar en sessionStorage para la página de resultados
-      sessionStorage.setItem("feedbackData", JSON.stringify({
-        feedback: feedbackData,
-        clinicalCase,
-        diagnosticoEstudiante,
-      }));
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error enviando diagnóstico");
+      }
 
-      // Redirigir a la página de resultados
-      router.push("/resultados");
+      const data = await res.json();
+      
+      if (data.success && data.data?.feedback) {
+        // El feedback ya se manejará en handleFeedbackReceived
+        // pero también lo guardamos aquí por si acaso
+        handleFeedbackReceived(data.data.feedback);
+      } else {
+        throw new Error("No se recibió feedback del engine");
+      }
     } catch (err) {
       console.error(err);
-      alert("Error generando feedback");
+      alert(err instanceof Error ? err.message : "Error enviando diagnóstico");
     } finally {
       setFeedbackLoading(false);
     }
@@ -170,8 +203,9 @@ export default function SimuladorPage() {
             </h2>
             <ChatBox
               key={clinicalCase?.simulationId}
-              clinicalCase={clinicalCase?.simulationDebug as ClinicalCase}
-              onMessagesChange={setChatMessages}
+              simulationId={clinicalCase.simulationId}
+              initialMessage={clinicalCase.initialMessage}  
+              onFeedbackReceived={handleFeedbackReceived}
             />
           </div>
           

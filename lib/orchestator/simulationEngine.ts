@@ -19,6 +19,8 @@ import {
   DecisionResult,
 } from "@/lib/agents/decisionAgent";
 import { generateFeedback } from "@/lib/agents/feedbackAgent";
+import { generateCaseWithRAG } from "@/lib/assistant";
+import { caseGenerationPrompts } from "@/lib/prompts";
 
 /**
  * Simulation Engine
@@ -58,13 +60,79 @@ function createPatientContextFromCase(
 export class SimulationEngine {
   /**
    * Creates a new simulation with a generated clinical case
+   * Automatically uses RAG for APS cases
    */
   static async createSimulation(
     options: CaseCreatorOptions = {}
   ): Promise<{ simulation: Simulation; initialMessage: string }> {
     try {
       // Step 1: Generate clinical case
-      const clinicalCase = await generateClinicalCase(options);
+      // If specialty is APS, use RAG with Assistant API
+      let clinicalCase: ClinicalCase;
+      const specialty = options.specialty || "medicina_interna";
+      const difficulty = options.difficulty || "medium";
+
+      if (specialty === "aps") {
+        // Map difficulty to nivel_dificultad
+        const nivelDificultadMap: Record<
+          "easy" | "medium" | "hard",
+          "facil" | "medio" | "dificil"
+        > = {
+          easy: "facil",
+          medium: "medio",
+          hard: "dificil",
+        };
+        const nivel_dificultad = nivelDificultadMap[difficulty] || "medio";
+
+        // Seleccionar subcategoría aleatoria
+        const apsSubcategorias = [
+          "cardiovascular",
+          "respiratorio",
+          "metabolico",
+          "salud_mental",
+          "musculoesqueletico",
+        ];
+        const subcategoria =
+          apsSubcategorias[Math.floor(Math.random() * apsSubcategorias.length)];
+
+        const prompt = `${caseGenerationPrompts.system(
+          specialty,
+          nivel_dificultad,
+          subcategoria
+        )}
+
+${caseGenerationPrompts.user()}`;
+
+        const output = await generateCaseWithRAG(
+          specialty,
+          nivel_dificultad,
+          prompt
+        );
+
+        if (!output) {
+          throw new Error("No se recibió respuesta del modelo");
+        }
+
+        // Extraer el JSON de la respuesta (puede venir con texto adicional)
+        const jsonMatch = output.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : output;
+
+        clinicalCase = JSON.parse(jsonString) as ClinicalCase;
+        if (!clinicalCase.paciente || !clinicalCase.motivo_consulta) {
+          throw new Error("Caso incompleto");
+        }
+
+        if (!clinicalCase.id) {
+          clinicalCase.id = `case-aps-${Date.now()}`;
+        }
+
+        // Añadir subcategoría al caso
+        clinicalCase.aps_subcategoria =
+          subcategoria as ClinicalCase["aps_subcategoria"];
+      } else {
+        // For other specialties, use the standard case creator
+        clinicalCase = await generateClinicalCase(options);
+      }
 
       // Step 2: Create patient context
       const patientContext = createPatientContextFromCase(clinicalCase);

@@ -1,4 +1,4 @@
-import { openai } from "./openai";
+import { getOpenAIClient } from "./openai";
 import fs from "fs";
 import path from "path";
 
@@ -21,19 +21,19 @@ export async function initializeAssistant() {
     }
 
     // 1. Buscar TODOS los archivos PDF en la carpeta
-    const knowledgeDir = path.join(
-      process.cwd(),
-      "data",
-      "medical-knowledge"
-    );
-    
+    const knowledgeDir = path.join(process.cwd(), "data", "medical-knowledge");
+
     const files = fs.readdirSync(knowledgeDir);
-    const pdfFiles = files.filter(file => file.toLowerCase().endsWith('.pdf'));
-    
+    const pdfFiles = files.filter((file) =>
+      file.toLowerCase().endsWith(".pdf")
+    );
+
     if (pdfFiles.length === 0) {
-      throw new Error("No se encontró ningún archivo PDF en data/medical-knowledge");
+      throw new Error(
+        "No se encontró ningún archivo PDF en data/medical-knowledge"
+      );
     }
-    
+
     console.log(`Encontrados ${pdfFiles.length} archivos PDF:`, pdfFiles);
 
     // 2. Subir TODOS los PDFs a OpenAI en paralelo
@@ -41,12 +41,13 @@ export async function initializeAssistant() {
     const uploadPromises = pdfFiles.map(async (pdfFile) => {
       const pdfPath = path.join(knowledgeDir, pdfFile);
       const fileStream = fs.createReadStream(pdfPath);
-      
+
+      const openai = getOpenAIClient();
       const uploadedFile = await openai.files.create({
         file: fileStream,
         purpose: "assistants",
       });
-      
+
       console.log(`✓ ${pdfFile} subido:`, uploadedFile.id);
       return uploadedFile.id;
     });
@@ -55,6 +56,7 @@ export async function initializeAssistant() {
     console.log(`✓ Todos los archivos subidos (${uploadedFileIds.length})`);
 
     // 3. Crear el Assistant con File Search habilitado y TODOS los archivos
+    const openai = getOpenAIClient();
     const assistant = await openai.beta.assistants.create({
       name: "Generador de Casos APS",
       instructions: `Eres un médico de Atención Primaria de Salud (APS) trabajando en un CESFAM en Chile.
@@ -124,6 +126,7 @@ export async function generateCaseWithRAG(
     }
 
     // Crear un Thread para la conversación
+    const openai = getOpenAIClient();
     const thread = await openai.beta.threads.create();
 
     // Añadir el mensaje con la solicitud
