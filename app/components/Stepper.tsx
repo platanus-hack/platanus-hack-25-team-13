@@ -11,7 +11,7 @@ interface StepperProps {
 
 export default function Stepper({ steps, currentStep }: StepperProps) {
   return (
-    <div className="mt-20 w-full max-w-2xl">
+    <div className="w-full max-w-2xl">
       <div className="flex items-start">
         {steps.map((step, index) => (
           <div key={index} className="flex items-start flex-1 relative">

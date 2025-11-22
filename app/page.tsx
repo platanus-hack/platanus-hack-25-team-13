@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <>
       {isLoading && <LoadingScreen />}
-      <div className="h-[85vh] bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] font-sans overflow-hidden flex flex-col">
+      <div className="h-[85vh] font-sans overflow-hidden flex flex-col">
       <main className="flex-1 overflow-hidden min-h-0">
         <div className="h-full max-w-7xl mx-auto px-2 py-1.5 flex flex-col">
           {/* Saludo de Bienvenida */}
