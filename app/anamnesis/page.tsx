@@ -23,6 +23,7 @@ export default function AnamnesisPage() {
   const [initialMessage, setInitialMessage] = useState<string | null>(null);
   const [simulationId, setSimulationId] = useState<string | null>(null);
   const [feedbackData, setFeedbackData] = useState<any>(null);
+  const [examImageUrl, setExamImageUrl] = useState<string | null>(null);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -341,24 +342,51 @@ export default function AnamnesisPage() {
           <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] ">
             <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                <ChatImage 
-                  step={1} 
-                  loading={loading}
-                  lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
-                    ? (messages[messages.length - 1].role as "user" | "assistant")
-                    : undefined}
-                  lastMessageContent={
-                    messages.length > 0 && messages[messages.length - 1].role === "assistant"
-                      ? messages[messages.length - 1].content
-                      : undefined
-                  }
-                  infoText={`${finalPacienteData.nombre}, ${finalPacienteData.edad} años`}
-                  sexo={finalClinicalCase.paciente.sexo}
-                />
+                {examImageUrl ? (
+                  <ChatImage 
+                    imageType={examImageUrl}
+                    imageBasePath=""
+                    step={1}
+                    infoText="Examen médico"
+                  />
+                ) : (
+                  <ChatImage 
+                    step={1} 
+                    loading={loading}
+                    lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
+                      ? (messages[messages.length - 1].role as "user" | "assistant")
+                      : undefined}
+                    lastMessageContent={
+                      messages.length > 0 && messages[messages.length - 1].role === "assistant"
+                        ? messages[messages.length - 1].content
+                        : undefined
+                    }
+                    infoText={`${finalPacienteData.nombre}, ${finalPacienteData.edad} años`}
+                    sexo={finalClinicalCase.paciente.sexo}
+                  />
+                )}
               </div>
             </div>
             <div className="w-[70%]">
-              <Consulta clinicalCase={finalClinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
+              <Consulta 
+                clinicalCase={finalClinicalCase} 
+                messages={messages} 
+                loading={loading} 
+                input={input} 
+                onInputChange={setInput} 
+                onSend={handleSend} 
+                loadingInput={loading}
+                onExamImageGenerated={(imageUrl) => {
+                  setExamImageUrl(imageUrl);
+                  // Agregar mensaje al chat indicando que se generó un examen
+                  const examMessage: ChatMessage = {
+                    role: "assistant",
+                    content: "Aquí está el resultado de su examen médico.",
+                    timestamp: new Date(),
+                  };
+                  setMessages((prev) => [...prev, examMessage]);
+                }}
+              />
             </div>
           </div>
         )}
