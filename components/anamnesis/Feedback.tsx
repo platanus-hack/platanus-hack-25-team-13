@@ -215,7 +215,7 @@ ${sugerencias.map((s: string, i: number) => `  ${i + 1}. ${s}`).join('\n')}
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 h-[99vh] overflow-y-auto mt-20">
+    <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 ">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-2 flex-1">
