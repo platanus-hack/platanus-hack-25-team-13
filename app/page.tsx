@@ -9,13 +9,40 @@ import LoadingScreen from "../components/utils/LoadingScreen";
 export default function Home() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+  const [especialidad, setEspecialidad] = useState<"aps" | "urgencia" | "hospitalizacion" | "otro">("aps");
+  const [nivelDificultad, setNivelDificultad] = useState<"facil" | "medio" | "dificil">("medio");
+  const [generatingCase, setGeneratingCase] = useState(false);
 
   const handleStartSimulation = () => {
-    setIsLoading(true);
-    // Después de 3 segundos, navegar a antecedentes médicos
-    setTimeout(() => {
-      router.push("/anamnesis");
-    }, 3000);
+    setShowConfig(true);
+  };
+
+  const handleGenerateCase = async () => {
+    setGeneratingCase(true);
+    try {
+      const res = await fetch("/api/generar-caso", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          especialidad,
+          nivel_dificultad: nivelDificultad,
+        }),
+      });
+      if (!res.ok) throw new Error("Error en la API");
+
+      const data = await res.json();
+      if (data?.success && data?.data) {
+        // Guardar el caso en sessionStorage y navegar a simulador
+        sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
+        router.push("/simulador");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error generando caso");
+    } finally {
+      setGeneratingCase(false);
+    }
   };
 
   // Función para convertir porcentaje a nota chilena (1-7)
@@ -92,18 +119,83 @@ export default function Home() {
 
           {/* Grid 2x2 */}
           <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-1.5 min-h-0">
-            {/* Fila 1 - Columna 1: Botón Iniciar Simulación */}
-            <button
-              onClick={handleStartSimulation}
-              className="bg-gradient-to-br from-[#1098f7] to-[#0d7fd6] rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02] hover:from-[#0e85e0] hover:to-[#0c7cc5] transition-all duration-300 flex flex-col items-center justify-center gap-2 p-3 group min-h-0 active:scale-[0.98]"
-            >
-              <FaStethoscope className="w-12 h-12 text-white drop-shadow-lg group-hover:scale-105 transition-transform duration-300" />
-              <div className="text-center">
-                <h2 className="text-lg font-bold text-white group-hover:scale-[1.02] transition-transform duration-300">
-                  Iniciar Simulación
-                </h2>
+            {/* Fila 1 - Columna 1: Botón Iniciar Simulación o Configuración */}
+            {!showConfig ? (
+              <button
+                onClick={handleStartSimulation}
+                className="bg-gradient-to-br from-[#1098f7] to-[#0d7fd6] rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02] hover:from-[#0e85e0] hover:to-[#0c7cc5] transition-all duration-300 flex flex-col items-center justify-center gap-2 p-3 group min-h-0 active:scale-[0.98]"
+              >
+                <FaStethoscope className="w-12 h-12 text-white drop-shadow-lg group-hover:scale-105 transition-transform duration-300" />
+                <div className="text-center">
+                  <h2 className="text-lg font-bold text-white group-hover:scale-[1.02] transition-transform duration-300">
+                    Iniciar Simulación
+                  </h2>
+                </div>
+              </button>
+            ) : (
+              <div className="bg-white rounded-lg shadow-md border-[0.5px] border-[#1098f7] border-opacity-20 flex flex-col p-3 min-h-0 overflow-hidden">
+                <div className="mb-3 flex-shrink-0">
+                  <h3 className="text-base font-bold text-[#001c55] mb-2">
+                    Configuración del Caso
+                  </h3>
+                </div>
+                <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-y-auto">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Nivel de Atención
+                    </label>
+                    <select
+                      value={especialidad}
+                      onChange={(e) => setEspecialidad(e.target.value as typeof especialidad)}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-black focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
+                    >
+                      <option value="aps">🏥 APS (CESFAM) - con RAG 🤖</option>
+                      <option value="urgencia">🚨 Urgencia (Servicio de Urgencias)</option>
+                      <option value="hospitalizacion">🏨 Hospitalización (Medicina Interna)</option>
+                      <option value="otro">🔧 Otro (Pediatría / Especialidades)</option>
+                    </select>
+                    {especialidad === "aps" && (
+                      <p className="text-[10px] text-green-600 mt-0.5">
+                        ✨ Usando RAG con guías clínicas chilenas
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Nivel de Dificultad
+                    </label>
+                    <select
+                      value={nivelDificultad}
+                      onChange={(e) => setNivelDificultad(e.target.value as typeof nivelDificultad)}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-black focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
+                    >
+                      <option value="facil">Fácil</option>
+                      <option value="medio">Medio</option>
+                      <option value="dificil">Difícil</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={handleGenerateCase}
+                    disabled={generatingCase}
+                    className="mt-2 bg-[#1098f7] text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-[#0d7fd6] transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    {generatingCase ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Generando caso...
+                      </>
+                    ) : (
+                      <>
+                        <FaStethoscope className="w-3 h-3" />
+                        Comenzar a generar el caso clínico
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </button>
+            )}
 
             {/* Fila 1 - Columna 2: Perfil de Usuario */}
             <div className="bg-white rounded-lg shadow-md border-[0.5px] border-[#1098f7] border-opacity-20 flex flex-col overflow-hidden min-h-0">
