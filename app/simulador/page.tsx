@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { ClinicalCase, FeedbackResult } from "@/types/case";
 import ChatBox from "@/components/ChatBox";
@@ -39,6 +39,22 @@ export default function SimuladorPage() {
   const [especialidad, setEspecialidad] = useState<ClinicalCase["especialidad"]>("aps");
   const [nivelDificultad, setNivelDificultad] = useState<ClinicalCase["nivel_dificultad"]>("medio");
   const router = useRouter();
+
+  // Cargar caso generado desde home si existe
+  useEffect(() => {
+    const savedCase = sessionStorage.getItem("generatedCase");
+    if (savedCase) {
+      try {
+        const parsedCase = JSON.parse(savedCase);
+        setClinicalCase(parsedCase);
+        setEspecialidad(parsedCase.especialidad || "aps");
+        setNivelDificultad(parsedCase.nivel_dificultad || "medio");
+        sessionStorage.removeItem("generatedCase");
+      } catch (e) {
+        console.error("Error parsing saved case:", e);
+      }
+    }
+  }, []);
 
   async function handleGenerateCase() {
     setLoading(true);

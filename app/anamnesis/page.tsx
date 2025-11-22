@@ -18,9 +18,100 @@ export default function AnamnesisPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pacienteData, setPacienteData] = useState<any>(null);
+  const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);
+  const [initialMessage, setInitialMessage] = useState<string | null>(null);
+  const [simulationId, setSimulationId] = useState<string | null>(null);
+  const [feedbackData, setFeedbackData] = useState<any>(null);
 
-  // Datos de ejemplo del paciente
-  const pacienteData = {
+  // Cargar datos del caso generado desde home
+  useEffect(() => {
+    const savedCase = sessionStorage.getItem("generatedCase");
+    if (savedCase) {
+      try {
+        const parsedCase = JSON.parse(savedCase);
+        const simulationDebug = parsedCase["simulation-debug"];
+        const clinicalCaseData = simulationDebug?.clinicalCase;
+        const patientInfo = parsedCase.patientInfo;
+
+        if (clinicalCaseData && patientInfo) {
+          // Guardar simulationId
+          if (parsedCase.simulationId) {
+            setSimulationId(parsedCase.simulationId);
+          }
+
+          // Guardar initialMessage
+          if (parsedCase.initialMessage) {
+            setInitialMessage(parsedCase.initialMessage);
+          }
+
+          // Capitalizar sexo
+          const sexoCapitalizado = patientInfo.sexo.charAt(0).toUpperCase() + patientInfo.sexo.slice(1);
+          
+          // Construir datos del paciente para AntecedentesMedicos
+          const pacienteDataFromCase = {
+            nombre: `Paciente ${patientInfo.sexo === "femenino" ? "Femenino" : patientInfo.sexo === "masculino" ? "Masculino" : ""}`,
+            edad: patientInfo.edad,
+            sexo: sexoCapitalizado,
+            ocupacion: patientInfo.ocupacion,
+            motivoConsulta: clinicalCaseData.motivo_consulta || "",
+            contextoIngreso: patientInfo.contexto_ingreso || "",
+          };
+
+          setPacienteData(pacienteDataFromCase);
+
+          // Construir ClinicalCase completo
+          const fullClinicalCase: ClinicalCase = {
+            id: clinicalCaseData.id || parsedCase.simulationId || "1",
+            especialidad: parsedCase.especialidad || clinicalCaseData.especialidad || "aps",
+            nivel_dificultad: parsedCase.nivel_dificultad || clinicalCaseData.nivel_dificultad || "medio",
+            aps_subcategoria: clinicalCaseData.aps_subcategoria,
+            paciente: {
+              edad: patientInfo.edad,
+              sexo: patientInfo.sexo as "masculino" | "femenino" | "otro",
+              ocupacion: patientInfo.ocupacion,
+              contexto_ingreso: patientInfo.contexto_ingreso,
+            },
+            motivo_consulta: clinicalCaseData.motivo_consulta || "",
+            sintomas: clinicalCaseData.sintomas || {
+              descripcion_general: "",
+              detalle: [],
+            },
+            antecedentes: {
+              personales: clinicalCaseData.antecedentes?.personales || [],
+              familiares: clinicalCaseData.antecedentes?.familiares || [],
+              farmacos: clinicalCaseData.antecedentes?.farmacos || [],
+              alergias: clinicalCaseData.antecedentes?.alergias || [],
+            },
+            examen_fisico: clinicalCaseData.examen_fisico || {
+              signos_vitales: {
+                temperatura: 36.5,
+                frecuencia_cardiaca: 90,
+                presion_arterial: "140/90",
+                frecuencia_respiratoria: 20,
+                saturacion_o2: 98,
+              },
+              hallazgos_relevantes: [],
+            },
+            examenes: clinicalCaseData.examenes || {},
+            diagnostico_principal: clinicalCaseData.diagnostico_principal || "",
+            diagnosticos_diferenciales: clinicalCaseData.diagnosticos_diferenciales || [],
+            info_oculta: clinicalCaseData.info_oculta || [],
+            info_prohibida: clinicalCaseData.info_prohibida || [],
+            manejo_aps: clinicalCaseData.manejo_aps,
+          };
+
+          setClinicalCase(fullClinicalCase);
+          sessionStorage.removeItem("generatedCase");
+        }
+      } catch (e) {
+        console.error("Error parsing saved case:", e);
+      }
+    }
+  }, []);
+
+  // Datos por defecto si no hay caso generado
+  const defaultPacienteData = {
     nombre: "María González",
     edad: 45,
     sexo: "Femenino",
@@ -31,26 +122,25 @@ export default function AnamnesisPage() {
     medicamentosYAlergias: "Metformina 850mg cada 12 horas. Losartán 50mg diario. No alergias conocidas a medicamentos."
   };
 
-  // Caso clínico de ejemplo basado en los datos del paciente
-  const clinicalCase: ClinicalCase = {
+  const defaultClinicalCase: ClinicalCase = {
     id: "1",
     especialidad: "urgencia",
     nivel_dificultad: "medio",
     paciente: {
-      edad: pacienteData.edad,
-      sexo: pacienteData.sexo.toLowerCase() as "masculino" | "femenino" | "otro",
-      ocupacion: pacienteData.ocupacion,
-      contexto_ingreso: pacienteData.contextoIngreso,
+      edad: defaultPacienteData.edad,
+      sexo: defaultPacienteData.sexo.toLowerCase() as "masculino" | "femenino" | "otro",
+      ocupacion: defaultPacienteData.ocupacion,
+      contexto_ingreso: defaultPacienteData.contextoIngreso,
     },
-    motivo_consulta: pacienteData.motivoConsulta,
+    motivo_consulta: defaultPacienteData.motivoConsulta,
     sintomas: {
       descripcion_general: "Dolor torácico de inicio súbito",
       detalle: ["Dolor torácico", "Disnea", "Sudoración"],
     },
     antecedentes: {
-      personales: pacienteData.antecedentesPersonales.split(". "),
+      personales: defaultPacienteData.antecedentesPersonales.split(". "),
       familiares: [],
-      farmacos: pacienteData.medicamentosYAlergias.split(". "),
+      farmacos: defaultPacienteData.medicamentosYAlergias.split(". "),
       alergias: [],
     },
     examen_fisico: {
@@ -70,10 +160,12 @@ export default function AnamnesisPage() {
     info_prohibida: [],
   };
 
+  const finalPacienteData = pacienteData || defaultPacienteData;
+  const finalClinicalCase = clinicalCase || defaultClinicalCase;
+
   const steps = [
     { title: "Antecedentes" },
-    { title: "Consulta" },
-    { title: "Diagnóstico" },
+    { title: "Consulta y Diagnostico" },
     { title: "Finalizar" },
   ];
 
@@ -81,31 +173,79 @@ export default function AnamnesisPage() {
     setCurrentStep(1);
     setMessages([]);
     setTimeout(() => {
+      const firstMessage = initialMessage || 
+        (finalClinicalCase.motivo_consulta 
+          ? finalClinicalCase.motivo_consulta
+          : "Hola");
+      
       setMessages([
         {
           role: "assistant",
-          content: `Hola doctor/a, ${clinicalCase.motivo_consulta}`,
+          content: firstMessage,
           timestamp: new Date(),
         },
       ]);
     }, 2000);
   };
 
-  // useEffect(() => {
-  //   if (typeof window !== 'undefined') {
-  //     (window as unknown).__DEV_NEXT_STEP = handleNextStep;
-  //   }
-  //   return () => {
-  //     if (typeof window !== 'undefined') {
-  //       delete (window as unknown).__DEV_NEXT_STEP;
-  //     }
-  //   };
-  // }, [currentStep]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__DEV_NEXT_STEP = handleDevNext;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__DEV_NEXT_STEP;
+      }
+    };
+  }, [finalClinicalCase]);
+
+  const handleDevNext = () => {
+    // DEV: Go directly to feedback step with mockup data
+    const mockFeedback = {
+      puntajes: {
+        motivo_consulta: 4,
+        sintomas_relevantes: 3,
+        antecedentes: 2,
+        red_flags: 1,
+        razonamiento_clinico: 2,
+        comunicacion: 4,
+      },
+      comentarios: {
+        fortalezas: [
+          "El estudiante mostró una buena habilidad para establecer comunicación inicial con el paciente.",
+          "Fue capaz de explorar adecuadamente el motivo de consulta del paciente.",
+        ],
+        debilidades: [
+          "El estudiante no exploró adecuadamente los antecedentes personales y familiares del paciente.",
+          "No identificó las red flags importantes para el caso.",
+          "El razonamiento clínico fue incorrecto, llevando a un diagnóstico erróneo.",
+        ],
+        sugerencias: [
+          "Asegurarse de preguntar sobre antecedentes familiares y personales relevantes en casos respiratorios.",
+          "Mejorar la identificación de signos de alarma que podrían requerir atención urgente.",
+          "Revisar criterios de diagnóstico diferencial para afecciones respiratorias comunes en adultos mayores con antecedentes de tabaquismo.",
+        ],
+      },
+      diagnostico: {
+        estudiante: "infección pulmonar",
+        correcto: false,
+        diagnostico_real: finalClinicalCase.diagnostico_principal || "EPOC exacerbado",
+        comentario: "El diagnóstico del estudiante fue incorrecto. No consideró el historial de tabaquismo y los síntomas característicos de EPOC exacerbado.",
+      },
+    };
+    
+    setFeedbackData(mockFeedback);
+    setCurrentStep(2);
+  };
 
   async function handleSend() {
-    // Esta página es solo una demostración con datos de ejemplo.
-    // Para usar el sistema completo con engine inteligente, usa /simulador
     if (!input.trim() || loading) return;
+
+    // Solo usar engine si tenemos simulationId
+    if (!simulationId) {
+      console.error("No simulationId available");
+      return;
+    }
 
     const userMessage: ChatMessage = {
       role: "user",
@@ -114,23 +254,61 @@ export default function AnamnesisPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageContent = input;
     setInput("");
     setLoading(true);
 
-    // Simulación simple para demo (sin engine)
-    setTimeout(() => {
-      const assistantMessage: ChatMessage = {
+    try {
+      const response = await fetch("/api/engine", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          simulationId,
+          message: messageContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data.response) {
+        const assistantMessage: ChatMessage = {
+          role: "assistant",
+          content: data.data.response,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Check if diagnosis was submitted
+        if (data.data.actionTaken === "submit_diagnosis" && data.data.feedback) {
+          // Save feedback data and move to feedback step
+          setFeedbackData(data.data.feedback);
+          setCurrentStep(2);
+          return;
+        }
+      } else {
+        throw new Error(data.error || "No response from engine");
+      }
+    } catch (error) {
+      console.error("Error sending message to engine:", error);
+      const errorMessage: ChatMessage = {
         role: "assistant",
-        content: "Esta es una página de demostración. Para usar el sistema completo con engine inteligente, por favor usa la página /simulador que incluye el sistema de simulación con RAG y feedback automático.",
+        content: "Lo siento, hubo un error al procesar tu mensaje. Por favor intenta de nuevo.",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
+    <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
       <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
         <div className="w-full max-w-3xl">
           <Stepper steps={steps} currentStep={currentStep} />
@@ -141,14 +319,12 @@ export default function AnamnesisPage() {
         {currentStep === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[60vh] mt-4">
             <AntecedentesMedicos
-              nombre={pacienteData.nombre}
-              edad={pacienteData.edad}
-              sexo={pacienteData.sexo}
-              ocupacion={pacienteData.ocupacion}
-              motivoConsulta={pacienteData.motivoConsulta}
-              antecedentesPersonales={pacienteData.antecedentesPersonales}
-              contextoIngreso={pacienteData.contextoIngreso}
-              medicamentosYAlergias={pacienteData.medicamentosYAlergias}
+              nombre={finalPacienteData.nombre}
+              edad={finalPacienteData.edad}
+              sexo={finalPacienteData.sexo}
+              ocupacion={finalPacienteData.ocupacion}
+              motivoConsulta={finalPacienteData.motivoConsulta}
+              contextoIngreso={finalPacienteData.contextoIngreso}
             />
             <div className="mt-6">
               <button
@@ -163,11 +339,11 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 1 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] mt-20">
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] ">
             <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
                 <ChatAvatar 
-                  step={currentStep} 
+                  step={1} 
                   loading={loading}
                   lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
                     ? (messages[messages.length - 1].role as "user" | "assistant")
@@ -176,34 +352,14 @@ export default function AnamnesisPage() {
               </div>
             </div>
             <div className="w-[70%]">
-              <Consulta clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
+              <Consulta clinicalCase={finalClinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
             </div>
           </div>
         )}
         
         {currentStep === 2 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] mt-4">
-            <div className="w-[30%] flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                <ChatAvatar 
-                  step={currentStep} 
-                  loading={loading}
-                  expression="diagnostico"
-                  lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
-                    ? messages[messages.length - 1].role as "user" | "assistant"
-                    : undefined}
-                />
-              </div>
-            </div>
-            <div className="w-[70%]">
-              <Diagnostico clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
-            </div>
-          </div>
-        )}
-        
-        {currentStep === 3 && (
           <div className="w-full max-w-5xl">
-            <Feedback clinicalCase={clinicalCase} />
+            <Feedback clinicalCase={finalClinicalCase} feedback={feedbackData} />
           </div>
         )}
       </div>

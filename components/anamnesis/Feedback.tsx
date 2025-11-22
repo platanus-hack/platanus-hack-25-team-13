@@ -1,77 +1,40 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar, FaExternalLinkAlt } from "react-icons/fa";
+import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar, FaChartLine } from "react-icons/fa";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { ClinicalCase } from "@/types/case";
+import jsPDF from "jspdf";
 
 interface FeedbackProps {
   clinicalCase: ClinicalCase;
+  feedback?: any;
 }
 
-interface FeedbackData {
-  nota: number;
-  fallas: string[];
-  mejoras: string[];
-  puntosFuertes: string[];
-  puntosDebiles: string[];
-  queRepasar: string[];
-}
-
-// Datos de ejemplo - esto debería venir de una API
-const mockFeedbackData: FeedbackData = {
-  nota: 5.5,
-  fallas: [
-    "No preguntaste sobre alergias a medicamentos",
-    "Faltó indagar sobre antecedentes familiares de enfermedades cardiovasculares",
-    "No exploraste completamente la historia del dolor torácico"
-  ],
-  mejoras: [
-    "Realizar una anamnesis más exhaustiva sobre antecedentes familiares",
-    "Preguntar sobre factores de riesgo cardiovascular",
-    "Indagar más sobre las características del dolor"
-  ],
-  puntosFuertes: [
-    "Buena comunicación con el paciente",
-    "Identificaste correctamente los síntomas principales",
-    "Preguntaste sobre medicamentos actuales"
-  ],
-  puntosDebiles: [
-    "Anamnesis incompleta de antecedentes familiares",
-    "No exploraste factores de riesgo",
-    "Faltó profundizar en la cronología de los síntomas"
-  ],
-  queRepasar: [
-    "Anamnesis de dolor torácico",
-    "Factores de riesgo cardiovascular",
-    "Interpretación de ECG en síndrome coronario agudo"
-  ]
-};
-
-function GaugeChart({ value, max = 7 }: { value: number; max?: number }) {
+function GaugeChart({ value, max = 5 }: { value: number; max?: number }) {
   const percentage = (value / max) * 100;
   
   const getColor = () => {
-    if (value >= 6.0) return "#10b981";
-    if (value >= 4.0) return "#f59e0b";
+    if (value >= 4.0) return "#10b981";
+    if (value >= 3.0) return "#f59e0b";
     return "#ef4444";
   };
 
   const getGradientColor = () => {
-    if (value >= 6.0) return ["#10b981", "#059669", "#047857"];
-    if (value >= 4.0) return ["#f59e0b", "#d97706", "#b45309"];
+    if (value >= 4.0) return ["#10b981", "#059669", "#047857"];
+    if (value >= 3.0) return ["#f59e0b", "#d97706", "#b45309"];
     return ["#ef4444", "#dc2626", "#b91c1c"];
   };
 
   const getEmoji = () => {
-    if (value >= 6.0) return "🎉";
-    if (value >= 4.0) return "⚠️";
+    if (value >= 4.0) return "🎉";
+    if (value >= 3.0) return "⚠️";
     return "❌";
   };
 
   const getText = () => {
-    if (value >= 6.0) return "Excelente";
-    if (value >= 4.0) return "Regular";
+    if (value >= 4.0) return "Excelente";
+    if (value >= 3.0) return "Regular";
     return "Necesita Mejora";
   };
 
@@ -129,54 +92,244 @@ function GaugeChart({ value, max = 7 }: { value: number; max?: number }) {
   );
 }
 
-export default function Feedback({ clinicalCase }: FeedbackProps) {
+const puntajeLabels: Record<string, string> = {
+  motivo_consulta: "Exploración del motivo de consulta",
+  sintomas_relevantes: "Interrogatorio de síntomas",
+  antecedentes: "Evaluación de antecedentes",
+  red_flags: "Detección de red flags",
+  razonamiento_clinico: "Razonamiento clínico",
+  comunicacion: "Comunicación con el paciente",
+};
+
+export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
   const router = useRouter();
-  const feedbackData = mockFeedbackData;
   
-  // Get final diagnosis
-  const finalDiagnosis = clinicalCase.diagnostico_principal || "Sin diagnóstico";
-  
-  // Determine if passed (nota >= 6.0)
-  const isPassed = feedbackData.nota >= 6.0;
+  if (!feedback) {
+    return (
+      <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 h-[99vh] overflow-y-auto">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-lg text-gray-500">Cargando feedback...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate average score from puntajes
+  const puntajes = feedback.puntajes || {};
+  const scores = Object.values(puntajes) as number[];
+  const notaPromedio = scores.length > 0 
+    ? scores.reduce((a, b) => a + b, 0) / scores.length 
+    : 0;
+
+  // Get diagnosis info
+  const diagnostico = feedback.diagnostico || {};
+  const diagnosticoEstudiante = diagnostico.estudiante || "No especificado";
+  const diagnosticoReal = diagnostico.diagnostico_real || clinicalCase.diagnostico_principal || "Sin diagnóstico";
+  const diagnosticoCorrecto = diagnostico.correcto || false;
+  const diagnosticoComentario = diagnostico.comentario || "";
+
+  // Get comments
+  const comentarios = feedback.comentarios || {};
+  const fortalezas = comentarios.fortalezas || [];
+  const debilidades = comentarios.debilidades || [];
+  const sugerencias = comentarios.sugerencias || [];
+
+  // Determine if passed (nota >= 3.0 out of 5)
+  const isPassed = notaPromedio >= 3.0;
 
   const handleDownload = () => {
-    const informe = `
-INFORME DE FEEDBACK - SIMULACIÓN CLÍNICA
-=========================================
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPosition = margin;
 
-NOTA FINAL: ${feedbackData.nota}/7.0
+    // Colors - more subtle
+    const lightGray = [240, 240, 240];
+    const darkGray = [100, 100, 100];
+    const primaryColor = [16, 152, 247]; // Just for subtle accents
 
-FALLAS DURANTE LA ANAMNESIS:
-${feedbackData.fallas.map((f, i) => `${i + 1}. ${f}`).join('\n')}
+    // Header - simple line
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("INFORME DE FEEDBACK - SIMULACIÓN CLÍNICA", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 6;
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    const fecha = new Date().toLocaleDateString("es-ES", { 
+      year: "numeric", 
+      month: "long", 
+      day: "numeric" 
+    });
+    doc.text(fecha, pageWidth / 2, yPosition, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    yPosition += 10;
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 8;
 
-PUNTOS FUERTES:
-${feedbackData.puntosFuertes.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+    // Calificación General
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("CALIFICACIÓN GENERAL", margin, yPosition);
+    yPosition += 6;
+    
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${notaPromedio.toFixed(1)}/5.0`, margin, yPosition);
+    yPosition += 12;
 
-PUNTOS DÉBILES:
-${feedbackData.puntosDebiles.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+    // Puntajes por Criterio
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("PUNTAJES POR CRITERIO", margin, yPosition);
+    yPosition += 6;
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    
+    Object.entries(puntajes).forEach(([key, value], index) => {
+      const label = puntajeLabels[key] || key;
+      const score = value as number;
+      
+      // Simple row with minimal styling
+      if (index % 2 === 0) {
+        doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+        doc.rect(margin, yPosition - 3, pageWidth - 2 * margin, 6, 'F');
+      }
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      doc.text(label, margin + 2, yPosition + 1);
+      
+      doc.setFont("helvetica", "bold");
+      doc.text(`${score}/5`, pageWidth - margin - 10, yPosition + 1, { align: "right" });
+      
+      yPosition += 6;
+    });
+    
+    yPosition += 5;
 
-POSIBLES MEJORAS:
-${feedbackData.mejoras.map((m, i) => `${i + 1}. ${m}`).join('\n')}
+    // Diagnóstico
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("DIAGNÓSTICO", margin, yPosition);
+    yPosition += 6;
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Tu diagnóstico:", margin, yPosition);
+    doc.setFont("helvetica", "normal");
+    const splitDiagEst = doc.splitTextToSize(diagnosticoEstudiante, pageWidth - 2 * margin - 50);
+    doc.text(splitDiagEst, margin + 45, yPosition);
+    yPosition += Math.max(splitDiagEst.length * 4, 5);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Correcto:", margin, yPosition);
+    doc.setFont("helvetica", "normal");
+    const splitDiagReal = doc.splitTextToSize(diagnosticoReal, pageWidth - 2 * margin - 50);
+    doc.text(splitDiagReal, margin + 45, yPosition);
+    yPosition += Math.max(splitDiagReal.length * 4, 5);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Resultado:", margin, yPosition);
+    doc.setFont("helvetica", "bold");
+    doc.text(diagnosticoCorrecto ? 'Correcto' : 'Incorrecto', margin + 45, yPosition);
+    yPosition += 5;
+    
+    if (diagnosticoComentario) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7);
+      const splitComment = doc.splitTextToSize(
+        diagnosticoComentario,
+        pageWidth - 2 * margin
+      );
+      doc.text(splitComment, margin, yPosition);
+      yPosition += splitComment.length * 3 + 3;
+    }
+    yPosition += 3;
 
-QUÉ REPASAR:
-${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
-    `.trim();
+    // Fortalezas
+    if (fortalezas.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("FORTALEZAS", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      fortalezas.forEach((fortaleza: string, i: number) => {
+        const splitText = doc.splitTextToSize(
+          `${i + 1}. ${fortaleza}`,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 3.5;
+      });
+      yPosition += 3;
+    }
 
-    const blob = new Blob([informe], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `feedback-simulacion-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Debilidades
+    if (debilidades.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("ÁREAS DE MEJORA", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      debilidades.forEach((debilidad: string, i: number) => {
+        const splitText = doc.splitTextToSize(
+          `${i + 1}. ${debilidad}`,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 3.5;
+      });
+      yPosition += 3;
+    }
+
+    // Sugerencias
+    if (sugerencias.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("SUGERENCIAS PARA MEJORAR", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      sugerencias.forEach((sugerencia: string, i: number) => {
+        const splitText = doc.splitTextToSize(
+          `${i + 1}. ${sugerencia}`,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 3.5;
+      });
+    }
+
+    // Save PDF
+    const fileName = `feedback-simulacion-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   const handleShare = async () => {
     const shareData = {
-      title: `Feedback Simulación: ${finalDiagnosis}`,
-      text: `Nota: ${feedbackData.nota}/7.0 - ${isPassed ? 'Aprobado' : 'Reprobado'}`,
+      title: `Feedback Simulación: ${diagnosticoReal}`,
+      text: `Nota: ${notaPromedio.toFixed(1)}/5.0 - ${isPassed ? 'Aprobado' : 'Reprobado'}`,
       url: window.location.href,
     };
 
@@ -184,15 +337,12 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copiar al portapapeles
         const textToCopy = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
         await navigator.clipboard.writeText(textToCopy);
         alert('Enlace copiado al portapapeles');
       }
     } catch (err) {
-      // Si el usuario cancela, no hacer nada
       if ((err as Error).name !== 'AbortError') {
-        // Fallback: copiar al portapapeles
         const textToCopy = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
         await navigator.clipboard.writeText(textToCopy);
         alert('Enlace copiado al portapapeles');
@@ -201,35 +351,22 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
   };
 
   const handleFinalize = () => {
-    // Limpiar datos de sesión si es necesario
     sessionStorage.removeItem('feedbackData');
-    // Navegar a la página principal
     router.push('/');
   };
 
-  const getStudyResourceLink = (tema: string) => {
-    // Generar enlace de búsqueda en PubMed/Google Scholar
-    const query = encodeURIComponent(`${tema} medicina`);
-    return `https://scholar.google.com/scholar?q=${query}`;
-  };
-
-  const handleStudyResource = (tema: string) => {
-    const link = getStudyResourceLink(tema);
-    window.open(link, '_blank', 'noopener,noreferrer');
-  };
-
   return (
-    <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 h-[99vh] overflow-y-auto">
+    <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 ">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-2 flex-1">
-          {isPassed ? (
+          {diagnosticoCorrecto ? (
             <FaCheckCircle className="text-green-500 text-lg flex-shrink-0" />
           ) : (
             <FaTimesCircle className="text-red-500 text-lg flex-shrink-0" />
           )}
           <h2 className="text-lg font-bold text-gray-900">
-            Calificación final: Diagnostico {finalDiagnosis}
+            {diagnosticoCorrecto ? "Diagnóstico Correcto" : "Diagnóstico Incorrecto"} - {diagnosticoReal}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -238,14 +375,14 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
             className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
           >
             <FaShare className="w-4 h-4" />
-            Compartir Consulta
+            Compartir
           </button>
           <button
             onClick={handleDownload}
             className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
           >
             <FaDownload className="w-4 h-4" />
-            Descargar Informe
+            Descargar informe
           </button>
           <button
             onClick={handleFinalize}
@@ -257,80 +394,162 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
         </div>
       </div>
 
+      {/* Diagnóstico Section */}
+      <div className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-5 border-2 border-blue-200">
+        <div className="flex items-start gap-4">
+          {diagnosticoCorrecto ? (
+            <FaCheckCircle className="text-green-500 text-2xl flex-shrink-0 mt-1" />
+          ) : (
+            <FaTimesCircle className="text-red-500 text-2xl flex-shrink-0 mt-1" />
+          )}
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Diagnóstico</h3>
+            <div className="space-y-2">
+              <div>
+                <span className="text-sm font-semibold text-gray-600">Tu diagnóstico: </span>
+                <span className="text-base text-gray-800">{diagnosticoEstudiante}</span>
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-gray-600">Diagnóstico correcto: </span>
+                <span className="text-base text-gray-800 font-medium">{diagnosticoReal}</span>
+              </div>
+              {diagnosticoComentario && (
+                <div className="bg-white border-l-4 border-blue-500 p-3 rounded mt-3">
+                  <p className="text-sm text-gray-700">{diagnosticoComentario}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Grid de 2 columnas */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
-        {/* Columna Izquierda - Errores */}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-6 mb-6">
+        {/* Columna Izquierda - Puntajes Detallados */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <FaExclamationTriangle className="text-red-500 text-base flex-shrink-0" />
-            <h3 className="text-base font-semibold text-gray-900">Errores</h3>
+            <FaChartLine className="text-blue-500 text-base flex-shrink-0" />
+            <h3 className="text-base font-semibold text-gray-900">Puntajes por Criterio</h3>
           </div>
-          <div className="bg-red-50 rounded-lg p-4 border-2 border-red-200">
-            <ul className="space-y-3">
-              {feedbackData.fallas.map((falla, idx) => (
-                <li key={idx} className="text-gray-800 text-base flex items-start gap-3">
-                  <span className="text-red-600 mt-1 flex-shrink-0 font-bold">✗</span>
-                  <div className="flex-1">
-                    <span className="font-medium text-gray-900">{falla}</span>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Este error indica que durante la anamnesis no se exploró adecuadamente este aspecto, lo cual puede afectar la precisión del diagnóstico.
-                    </p>
+          <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+            <div className="space-y-3">
+              {Object.entries(puntajes).map(([key, value]) => {
+                const numValue = value as number;
+                const percentage = (numValue / 5) * 100;
+                return (
+                  <div key={key}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-700">
+                        {puntajeLabels[key] || key}
+                      </span>
+                      <span className="text-xs font-bold text-[#1098f7]">
+                        {numValue}/5
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-[#1098f7] to-[#0d7fd6] h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Columna Derecha - Calificación */}
+        {/* Columna Derecha - Calificación General */}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <FaStar className="text-blue-500 text-base flex-shrink-0" />
-            <h3 className="text-base font-semibold text-gray-900">Calificación</h3>
+            <h3 className="text-base font-semibold text-gray-900">Calificación General</h3>
           </div>
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-200">
             <div className="flex justify-center">
-              <GaugeChart value={feedbackData.nota} />
+              <GaugeChart value={notaPromedio} max={5} />
             </div>
             <div className="mt-3 pt-3 border-t border-blue-200">
               <p className="text-xs text-gray-600 text-center">
-                Para un caso real, necesitarías mejorar aspectos como la exploración más exhaustiva de síntomas, 
-                antecedentes familiares y factores de riesgo para alcanzar un diagnóstico más preciso.
+                Promedio de todos los criterios evaluados
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Qué Repasar - Full Width */}
+      {/* Fortalezas y Debilidades */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Fortalezas */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <FaCheckCircle className="text-green-500 text-base flex-shrink-0" />
+            <h3 className="text-base font-semibold text-gray-900">Fortalezas</h3>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+            <ul className="space-y-2">
+              {fortalezas.length > 0 ? (
+                fortalezas.map((fortaleza: string, idx: number) => (
+                  <li key={idx} className="text-sm text-gray-800 flex gap-2">
+                    <span className="text-green-500 flex-shrink-0">✓</span>
+                    <span>{fortaleza}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-500 italic">No hay fortalezas registradas</li>
+              )}
+            </ul>
+          </div>
+        </div>
+
+        {/* Debilidades */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <FaExclamationTriangle className="text-orange-500 text-base flex-shrink-0" />
+            <h3 className="text-base font-semibold text-gray-900">Áreas de Mejora</h3>
+          </div>
+          <div className="bg-orange-50 rounded-lg p-4 border-2 border-orange-200">
+            <ul className="space-y-2">
+              {debilidades.length > 0 ? (
+                debilidades.map((debilidad: string, idx: number) => (
+                  <li key={idx} className="text-sm text-gray-800 flex gap-2">
+                    <span className="text-orange-500 flex-shrink-0">!</span>
+                    <span>{debilidad}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-500 italic">No hay debilidades registradas</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Sugerencias - Full Width */}
       <div className="mt-4">
         <div className="flex items-center gap-2 mb-3">
           <FaBook className="text-purple-500 text-base flex-shrink-0" />
-          <h3 className="text-base font-semibold text-gray-900">Qué Repasar</h3>
+          <h3 className="text-base font-semibold text-gray-900">Sugerencias para Mejorar</h3>
         </div>
         <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 rounded-lg p-5 border-2 border-purple-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {feedbackData.queRepasar.map((tema, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-lg p-3 border border-purple-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-3"
-              >
-                <div className="flex items-start gap-3 flex-1">
+            {sugerencias.length > 0 ? (
+              sugerencias.map((sugerencia: string, idx: number) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-lg p-3 border border-purple-100 shadow-sm hover:shadow-md transition-shadow flex items-start gap-3"
+                >
                   <div className="flex-shrink-0 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
                     <span className="text-purple-600 font-bold text-xs">{idx + 1}</span>
                   </div>
-                  <span className="text-gray-800 text-sm font-medium flex-1">{tema}</span>
+                  <span className="text-gray-800 text-sm font-medium flex-1">{sugerencia}</span>
                 </div>
-                <button
-                  onClick={() => handleStudyResource(tema)}
-                  className="flex-shrink-0 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg transition-colors duration-200 flex items-center gap-1.5 text-xs font-medium"
-                  title={`Estudiar: ${tema}`}
-                >
-                  <FaExternalLinkAlt className="w-3 h-3" />
-                  <span className="hidden sm:inline">Estudiar</span>
-                </button>
+              ))
+            ) : (
+              <div className="col-span-2 text-sm text-gray-500 italic text-center py-4">
+                No hay sugerencias registradas
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
