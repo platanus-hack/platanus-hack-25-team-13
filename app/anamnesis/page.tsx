@@ -9,7 +9,7 @@ import Consulta from "../../components/anamnesis/Consulta";
 import Diagnostico from "../../components/anamnesis/Diagnostico";
 import Feedback from "../../components/anamnesis/Feedback";
 import ChatInput from "../../components/anamnesis/ChatInput";
-import ChatAvatar from "../../components/anamnesis/ChatAvatar";
+import ChatImage from "../../components/anamnesis/ChatImage";
 import Stepper from "../../components/Stepper";
 
 export default function AnamnesisPage() {
@@ -342,7 +342,7 @@ export default function AnamnesisPage() {
           <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] ">
             <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                <ChatAvatar 
+                <ChatImage 
                   step={1} 
                   loading={loading}
                   lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
