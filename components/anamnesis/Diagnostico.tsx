@@ -15,22 +15,26 @@ interface DiagnosticoProps {
 }
 
 export default function Diagnostico({ clinicalCase, messages, loading, input, onInputChange, onSend, loadingInput }: DiagnosticoProps) {
+  const isDev = process.env.NEXT_PUBLIC_DEV === "true";
+
   return (
     <div className="w-full h-full bg-[#ffffff] rounded-lg shadow-lg border-[0.5px] border-[#1098f7] flex flex-col">
       <div className="p-4 pb-3 border-b-[0.5px] border-[#1098f7] flex-shrink-0 flex items-center justify-between">
         <h2 className="text-xl font-bold text-[#00072d]">
           Diagnóstico
         </h2>
-        <button
-          onClick={() => {
-            if (typeof window !== 'undefined' && (window as any).__DEV_NEXT_STEP) {
-              (window as any).__DEV_NEXT_STEP();
-            }
-          }}
-          className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-1 px-3 rounded transition-colors"
-        >
-          DEV: Siguiente
-        </button>
+        {isDev && (
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined' && (window as any).__DEV_NEXT_STEP) {
+                (window as any).__DEV_NEXT_STEP();
+              }
+            }}
+            className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-1 px-3 rounded transition-colors"
+          >
+            DEV: Siguiente
+          </button>
+        )}
       </div>
       
       <div className="flex-1 min-h-0 flex flex-col p-4">

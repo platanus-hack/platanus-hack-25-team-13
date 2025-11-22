@@ -13,6 +13,7 @@ export default function Home() {
   const [especialidad, setEspecialidad] = useState<"aps" | "urgencia" | "hospitalizacion" | "otro">("aps");
   const [nivelDificultad, setNivelDificultad] = useState<"facil" | "medio" | "dificil">("medio");
   const [generatingCase, setGeneratingCase] = useState(false);
+  const isDev = process.env.NEXT_PUBLIC_DEV === "true";
 
   const handleStartSimulation = () => {
     setShowConfig(true);
@@ -46,6 +47,56 @@ export default function Home() {
       setIsLoading(false);
       setGeneratingCase(false);
     }
+  };
+
+  const handleDevCase = () => {
+    // Create mock case data
+    const mockCase = {
+      simulationId: "dev-case-" + Date.now(),
+      initialMessage: "Hola, me siento mal. Tengo dolor de cabeza y mareos.",
+      patientInfo: {
+        edad: 65,
+        sexo: "masculino",
+        ocupacion: "Jubilado",
+        contexto_ingreso: "Paciente llega al servicio de urgencias con dolor de cabeza y mareos.",
+      },
+      "simulation-debug": {
+        clinicalCase: {
+          id: "dev-1",
+          especialidad: "urgencia",
+          nivel_dificultad: "medio",
+          motivo_consulta: "Paciente de 65 años que acude a consulta por dolor de cabeza de inicio súbito hace 2 horas, acompañado de mareos y visión borrosa. Refiere antecedente de hipertensión arterial en tratamiento.",
+          sintomas: {
+            descripcion_general: "Dolor de cabeza intenso, mareos, visión borrosa",
+            detalle: ["Dolor de cabeza", "Mareos", "Visión borrosa"],
+          },
+          antecedentes: {
+            personales: ["Hipertensión arterial desde hace 5 años"],
+            familiares: ["Padre con hipertensión"],
+            farmacos: ["Losartán 50mg diario"],
+            alergias: [],
+          },
+          examen_fisico: {
+            signos_vitales: {
+              temperatura: 36.5,
+              frecuencia_cardiaca: 90,
+              presion_arterial: "180/110",
+              frecuencia_respiratoria: 20,
+              saturacion_o2: 98,
+            },
+            hallazgos_relevantes: [],
+          },
+          examenes: {},
+          diagnostico_principal: "Crisis hipertensiva",
+          diagnosticos_diferenciales: ["Accidente cerebrovascular", "Migraña"],
+          info_oculta: [],
+          info_prohibida: [],
+        },
+      },
+    };
+
+    sessionStorage.setItem("generatedCase", JSON.stringify(mockCase));
+    router.push("/anamnesis");
   };
 
   // Función para convertir porcentaje a nota chilena (1-7)
@@ -196,6 +247,15 @@ export default function Home() {
                       </>
                     )}
                   </button>
+
+                  {isDev && (
+                    <button
+                      onClick={handleDevCase}
+                      className="mt-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                    >
+                      Dev: Caso Dev
+                    </button>
+                  )}
                 </div>
               </div>
             )}
