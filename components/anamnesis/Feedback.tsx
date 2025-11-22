@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar, FaExternalLinkAlt, FaChartLine } from "react-icons/fa";
+import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar, FaChartLine } from "react-icons/fa";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { ClinicalCase } from "@/types/case";
 
@@ -204,16 +204,6 @@ ${sugerencias.map((s: string, i: number) => `  ${i + 1}. ${s}`).join('\n')}
     router.push('/');
   };
 
-  const getStudyResourceLink = (tema: string) => {
-    const query = encodeURIComponent(`${tema} medicina`);
-    return `https://scholar.google.com/scholar?q=${query}`;
-  };
-
-  const handleStudyResource = (tema: string) => {
-    const link = getStudyResourceLink(tema);
-    window.open(link, '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 ">
       {/* Header */}
@@ -395,22 +385,12 @@ ${sugerencias.map((s: string, i: number) => `  ${i + 1}. ${s}`).join('\n')}
               sugerencias.map((sugerencia: string, idx: number) => (
                 <div
                   key={idx}
-                  className="bg-white rounded-lg p-3 border border-purple-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-3"
+                  className="bg-white rounded-lg p-3 border border-purple-100 shadow-sm hover:shadow-md transition-shadow flex items-start gap-3"
                 >
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="flex-shrink-0 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
-                      <span className="text-purple-600 font-bold text-xs">{idx + 1}</span>
-                    </div>
-                    <span className="text-gray-800 text-sm font-medium flex-1">{sugerencia}</span>
+                  <div className="flex-shrink-0 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-purple-600 font-bold text-xs">{idx + 1}</span>
                   </div>
-                  <button
-                    onClick={() => handleStudyResource(sugerencia)}
-                    className="flex-shrink-0 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg transition-colors duration-200 flex items-center gap-1.5 text-xs font-medium"
-                    title={`Estudiar: ${sugerencia}`}
-                  >
-                    <FaExternalLinkAlt className="w-3 h-3" />
-                    <span className="hidden sm:inline">Estudiar</span>
-                  </button>
+                  <span className="text-gray-800 text-sm font-medium flex-1">{sugerencia}</span>
                 </div>
               ))
             ) : (

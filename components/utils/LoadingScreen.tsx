@@ -18,7 +18,7 @@ export default function LoadingScreen() {
         {/* Loading text with animation */}
         <div className="flex flex-col items-center gap-2">
           <h2 className="text-2xl font-bold text-[#001c55] tracking-wide">
-            Generando caso clínico
+            Generando Caso Clínico...
           </h2>
           <div className="flex gap-1">
             <div className="w-2 h-2 rounded-full bg-[#1098f7] animate-bounce [animation-delay:-0.3s]"></div>
