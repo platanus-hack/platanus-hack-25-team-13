@@ -22,6 +22,7 @@ export default function AnamnesisPage() {
   const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);
   const [initialMessage, setInitialMessage] = useState<string | null>(null);
   const [simulationId, setSimulationId] = useState<string | null>(null);
+  const [feedbackData, setFeedbackData] = useState<any>(null);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -243,6 +244,14 @@ export default function AnamnesisPage() {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
+
+        // Check if diagnosis was submitted
+        if (data.data.actionTaken === "submit_diagnosis" && data.data.feedback) {
+          // Save feedback data and move to feedback step
+          setFeedbackData(data.data.feedback);
+          setCurrentStep(2);
+          return;
+        }
       } else {
         throw new Error(data.error || "No response from engine");
       }
@@ -311,7 +320,7 @@ export default function AnamnesisPage() {
         
         {currentStep === 2 && (
           <div className="w-full max-w-5xl">
-            <Feedback clinicalCase={finalClinicalCase} />
+            <Feedback clinicalCase={finalClinicalCase} feedback={feedbackData} />
           </div>
         )}
       </div>
