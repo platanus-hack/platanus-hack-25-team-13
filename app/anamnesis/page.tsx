@@ -348,6 +348,12 @@ export default function AnamnesisPage() {
                   lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
                     ? (messages[messages.length - 1].role as "user" | "assistant")
                     : undefined}
+                  lastMessageContent={
+                    messages.length > 0 && messages[messages.length - 1].role === "assistant"
+                      ? messages[messages.length - 1].content
+                      : undefined
+                  }
+                  infoText={`${finalPacienteData.nombre}, ${finalPacienteData.edad} años`}
                 />
               </div>
             </div>
