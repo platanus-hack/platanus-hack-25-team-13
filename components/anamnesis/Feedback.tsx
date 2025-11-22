@@ -259,6 +259,162 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
     }
     yPosition += 3;
 
+    // Manejo APS (si aplica)
+    if (feedback.manejo && clinicalCase.especialidad === 'aps') {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 80) {
+        doc.addPage();
+        yPosition = margin;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("EVALUACIÓN DE MANEJO EN APS", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      // Evaluación de checkmarks
+      const checks = [
+        { label: 'Decisión de derivación correcta', value: feedback.manejo.derivacion_correcta },
+        { label: 'Tipo de derivación adecuado', value: feedback.manejo.tipo_derivacion_adecuado },
+        { label: 'Manejo inicial apropiado', value: feedback.manejo.manejo_inicial_apropiado },
+        { label: 'Consideró ingreso a programa', value: feedback.manejo.considero_ingreso_programa },
+        { label: 'Definió metas terapéuticas', value: feedback.manejo.metas_terapeuticas_definidas },
+        { label: 'Educación y seguimiento apropiados', value: feedback.manejo.educacion_y_seguimiento_apropiados },
+        { label: 'Consideró factores psicosociales', value: feedback.manejo.considero_factores_psicosociales }
+      ];
+
+      checks.forEach(check => {
+        if (check.value !== undefined) {
+          const checkmark = check.value ? '✓' : '✗';
+          doc.setFont("helvetica", "bold");
+          doc.text(`${checkmark}`, margin, yPosition);
+          doc.setFont("helvetica", "normal");
+          doc.text(check.label, margin + 5, yPosition);
+          yPosition += 4;
+        }
+      });
+      yPosition += 2;
+
+      // Comentario de manejo
+      if (feedback.manejo.comentario) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(7);
+        const splitManejo = doc.splitTextToSize(
+          feedback.manejo.comentario,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitManejo, margin, yPosition);
+        yPosition += splitManejo.length * 3 + 3;
+      }
+
+      // Recomendaciones específicas
+      if (feedback.manejo.recomendaciones_especificas) {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 60) {
+          doc.addPage();
+          yPosition = margin;
+        }
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("MANEJO CORRECTO PARA ESTE CASO", margin, yPosition);
+        yPosition += 6;
+        
+        doc.setFontSize(8);
+        const recs = feedback.manejo.recomendaciones_especificas;
+
+        // Derivación
+        doc.setFont("helvetica", "bold");
+        doc.text("Derivación:", margin, yPosition);
+        yPosition += 4;
+        doc.setFont("helvetica", "normal");
+        const splitDeriv = doc.splitTextToSize(recs.derivacion, pageWidth - 2 * margin - 5);
+        doc.text(splitDeriv, margin + 5, yPosition);
+        yPosition += splitDeriv.length * 3 + 2;
+
+        // Programa APS
+        doc.setFont("helvetica", "bold");
+        doc.text("Programa APS:", margin, yPosition);
+        yPosition += 4;
+        doc.setFont("helvetica", "normal");
+        const splitProg = doc.splitTextToSize(recs.programa_aps, pageWidth - 2 * margin - 5);
+        doc.text(splitProg, margin + 5, yPosition);
+        yPosition += splitProg.length * 3 + 2;
+
+        // Metas terapéuticas
+        if (recs.metas_terapeuticas.length > 0) {
+          doc.setFont("helvetica", "bold");
+          doc.text("Metas terapéuticas:", margin, yPosition);
+          yPosition += 4;
+          doc.setFont("helvetica", "normal");
+          recs.metas_terapeuticas.forEach((meta: string) => {
+            const splitMeta = doc.splitTextToSize(`• ${meta}`, pageWidth - 2 * margin - 5);
+            doc.text(splitMeta, margin + 5, yPosition);
+            yPosition += splitMeta.length * 3 + 1;
+          });
+          yPosition += 1;
+        }
+
+        // Manejo CESFAM
+        if (recs.manejo_cesfam.length > 0) {
+          // Check if we need a new page
+          if (yPosition > pageHeight - 40) {
+            doc.addPage();
+            yPosition = margin;
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.text("Manejo inicial en CESFAM:", margin, yPosition);
+          yPosition += 4;
+          doc.setFont("helvetica", "normal");
+          recs.manejo_cesfam.forEach((accion: string) => {
+            const splitAccion = doc.splitTextToSize(`• ${accion}`, pageWidth - 2 * margin - 5);
+            doc.text(splitAccion, margin + 5, yPosition);
+            yPosition += splitAccion.length * 3 + 1;
+          });
+          yPosition += 1;
+        }
+
+        // Educación
+        if (recs.educacion_paciente.length > 0) {
+          // Check if we need a new page
+          if (yPosition > pageHeight - 40) {
+            doc.addPage();
+            yPosition = margin;
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.text("Educación al paciente:", margin, yPosition);
+          yPosition += 4;
+          doc.setFont("helvetica", "normal");
+          recs.educacion_paciente.forEach((edu: string) => {
+            const splitEdu = doc.splitTextToSize(`• ${edu}`, pageWidth - 2 * margin - 5);
+            doc.text(splitEdu, margin + 5, yPosition);
+            yPosition += splitEdu.length * 3 + 1;
+          });
+          yPosition += 1;
+        }
+
+        // Seguimiento
+        doc.setFont("helvetica", "bold");
+        doc.text("Seguimiento:", margin, yPosition);
+        yPosition += 4;
+        doc.setFont("helvetica", "normal");
+        const splitSeg = doc.splitTextToSize(recs.seguimiento, pageWidth - 2 * margin - 5);
+        doc.text(splitSeg, margin + 5, yPosition);
+        yPosition += splitSeg.length * 3 + 4;
+      }
+    }
+
+    // Check if we need a new page before Fortalezas
+    if (yPosition > pageHeight - 40) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
     // Fortalezas
     if (fortalezas.length > 0) {
       doc.setFontSize(11);
@@ -422,6 +578,163 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
           </div>
         </div>
       </div>
+
+      {/* Manejo APS - Solo para casos de APS */}
+      {feedback.manejo && clinicalCase.especialidad === "aps" && (
+        <div className="bg-white rounded-lg p-6 border-2 border-gray-200 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            {feedback.manejo.derivacion_correcta && 
+             feedback.manejo.tipo_derivacion_adecuado && 
+             feedback.manejo.manejo_inicial_apropiado ? (
+              <FaCheckCircle className="text-green-500" />
+            ) : (
+              <FaTimesCircle className="text-orange-500" />
+            )}
+            Evaluación de Manejo en APS
+          </h3>
+
+          {/* Evaluación de lo que hizo el estudiante */}
+          <div className="mb-4">
+            <h4 className="font-semibold text-gray-700 mb-3 text-sm">Tu desempeño:</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                {feedback.manejo.derivacion_correcta ? (
+                  <FaCheckCircle className="text-green-500 shrink-0" />
+                ) : (
+                  <FaTimesCircle className="text-red-500 shrink-0" />
+                )}
+                <span>Decisión de derivación correcta</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                {feedback.manejo.tipo_derivacion_adecuado ? (
+                  <FaCheckCircle className="text-green-500 shrink-0" />
+                ) : (
+                  <FaTimesCircle className="text-red-500 shrink-0" />
+                )}
+                <span>Tipo de derivación adecuado</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                {feedback.manejo.manejo_inicial_apropiado ? (
+                  <FaCheckCircle className="text-green-500 shrink-0" />
+                ) : (
+                  <FaTimesCircle className="text-red-500 shrink-0" />
+                )}
+                <span>Manejo inicial apropiado</span>
+              </div>
+              {feedback.manejo.considero_ingreso_programa !== undefined && (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                  {feedback.manejo.considero_ingreso_programa ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span>Consideró ingreso a programa</span>
+                </div>
+              )}
+              {feedback.manejo.metas_terapeuticas_definidas !== undefined && (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                  {feedback.manejo.metas_terapeuticas_definidas ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span>Definió metas terapéuticas</span>
+                </div>
+              )}
+              {feedback.manejo.educacion_y_seguimiento_apropiados !== undefined && (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                  {feedback.manejo.educacion_y_seguimiento_apropiados ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span>Educación y seguimiento apropiados</span>
+                </div>
+              )}
+              {feedback.manejo.considero_factores_psicosociales !== undefined && (
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
+                  {feedback.manejo.considero_factores_psicosociales ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span>Consideró factores psicosociales</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Comentario general */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded mb-4">
+            <p className="text-xs text-gray-700"><strong>Comentario:</strong> {feedback.manejo.comentario}</p>
+          </div>
+
+          {/* Recomendaciones específicas */}
+          {feedback.manejo.recomendaciones_especificas && (
+            <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+              <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2 text-sm">
+                <FaCheckCircle className="text-green-600" />
+                Manejo Correcto para este Caso
+              </h4>
+              <div className="space-y-3 text-xs">
+                {/* Derivación */}
+                <div>
+                  <p className="font-semibold text-green-800">Derivación:</p>
+                  <p className="text-gray-700 ml-2">{feedback.manejo.recomendaciones_especificas.derivacion}</p>
+                </div>
+
+                {/* Programa APS */}
+                <div>
+                  <p className="font-semibold text-green-800">Programa APS:</p>
+                  <p className="text-gray-700 ml-2">{feedback.manejo.recomendaciones_especificas.programa_aps}</p>
+                </div>
+
+                {/* Metas terapéuticas */}
+                {feedback.manejo.recomendaciones_especificas.metas_terapeuticas.length > 0 && (
+                  <div>
+                    <p className="font-semibold text-green-800">Metas terapéuticas:</p>
+                    <ul className="list-disc ml-5 text-gray-700">
+                      {feedback.manejo.recomendaciones_especificas.metas_terapeuticas.map((meta: string, i: number) => (
+                        <li key={i}>{meta}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Manejo en CESFAM */}
+                {feedback.manejo.recomendaciones_especificas.manejo_cesfam.length > 0 && (
+                  <div>
+                    <p className="font-semibold text-green-800">Manejo inicial en CESFAM:</p>
+                    <ul className="list-disc ml-5 text-gray-700">
+                      {feedback.manejo.recomendaciones_especificas.manejo_cesfam.map((accion: string, i: number) => (
+                        <li key={i}>{accion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Educación */}
+                {feedback.manejo.recomendaciones_especificas.educacion_paciente.length > 0 && (
+                  <div>
+                    <p className="font-semibold text-green-800">Educación al paciente:</p>
+                    <ul className="list-disc ml-5 text-gray-700">
+                      {feedback.manejo.recomendaciones_especificas.educacion_paciente.map((edu: string, i: number) => (
+                        <li key={i}>{edu}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Seguimiento */}
+                <div>
+                  <p className="font-semibold text-green-800">Seguimiento:</p>
+                  <p className="text-gray-700 ml-2">{feedback.manejo.recomendaciones_especificas.seguimiento}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Grid de 2 columnas */}
       <div className="grid grid-cols-2 md:grid-cols-2 gap-6 mb-6">

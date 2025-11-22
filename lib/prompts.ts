@@ -200,7 +200,7 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
   "manejo_aps": {
     "criterio_ingreso_programa": {
       "aplica": true,
-      "programa": "PSCV|ERA|Salud_Mental|No_aplica",
+      "programa": "string (nombre del programa según guías: PSCV, ERA, Salud Mental, PNI, PIE Adulto Mayor, etc.)",
       "justificacion": "Motivo por el cual debe ingresar según normativas chilenas"
     },
     "metas_terapeuticas": [
@@ -241,8 +241,11 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
 IMPORTANTE para casos de APS:
 - El campo "manejo_aps" es OBLIGATORIO para casos de especialidad "aps"
 - Usa la información de los documentos para llenar:
-  * Criterios de ingreso a programas (PSCV, ERA, Salud Mental)
-  * Metas terapéuticas específicas según normativa
+  * Criterios de ingreso a programas APS según guías (PSCV, ERA, Salud Mental, PNI, PIE Adulto Mayor, etc.)
+  * Usa el NOMBRE EXACTO del programa según aparece en las guías consultadas
+  * Si el paciente cumple criterios para múltiples programas, indica el más relevante
+  * Si no aplica a ningún programa, indica "No aplica" en el campo programa
+  * Metas terapéuticas específicas según normativa del programa
   * Tiempos GES si aplica
   * Criterios de derivación reales según guías nacionales
   * Red flags específicos y basados en guías clínicas
@@ -393,38 +396,94 @@ CRITERIOS A EVALUAR (puntaje 1.0 a 7.0, escala chilena):
 5. Comunicación efectiva y empatía con el paciente
 ${
   clinicalCase.especialidad === "aps"
-    ? "7. Manejo y decisiones de derivación (APS)"
+    ? "6. Manejo y decisiones de derivación (APS)\n   - Evalúa si el estudiante identificó correctamente cuándo derivar\n   - Si propuso derivación, ¿al nivel adecuado? (ambulatorio/urgencia/hospitalización)\n   - Si no requiere derivación, ¿lo reconoció correctamente?\n   - ¿Propuso manejo inicial apropiado en CESFAM antes de derivar?"
     : ""
 }
 
 ${
   clinicalCase.especialidad === "aps" && clinicalCase.manejo_aps
     ? `
-EVALUACIÓN ESPECÍFICA PARA APS:
-Además de los criterios generales, evalúa:
-- ¿Identificó correctamente la necesidad de derivación?
-- ¿Propuso el tipo de derivación adecuado? (ambulatoria vs urgente)
-- ¿Planteó manejo inicial apropiado en CESFAM?
-- ¿Consideró ingreso a programa si aplica?
-- ¿Definió metas terapéuticas claras?
-- ¿Propuso educación y seguimiento adecuados?
-- ¿Consideró factores psicosociales relevantes?
+EVALUACIÓN ESPECÍFICA PARA APS - MANEJO Y DERIVACIÓN:
 
-Caso requiere derivación: ${
-        clinicalCase.manejo_aps.derivacion.requiere_derivacion
+INFORMACIÓN DEL CASO:
+- Requiere derivación: ${
+        clinicalCase.manejo_aps.derivacion.requiere_derivacion ? "SÍ" : "NO"
       }
-Tipo de derivación correcto: ${
+- Tipo de derivación correcta: ${
         clinicalCase.manejo_aps.derivacion.tipo_derivacion
       }
-Criterios de derivación: ${JSON.stringify(
+- Criterios que justifican derivación: ${JSON.stringify(
         clinicalCase.manejo_aps.derivacion.criterios
       )}
-Red flags urgentes: ${JSON.stringify(
+- Red flags (derivación urgente): ${JSON.stringify(
         clinicalCase.manejo_aps.derivacion.red_flags
       )}
-Aplica a programa: ${
-        clinicalCase.manejo_aps.criterio_ingreso_programa.aplica
-      } - ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}
+- Aplica a programa APS: ${
+        clinicalCase.manejo_aps.criterio_ingreso_programa.aplica ? "SÍ" : "NO"
+      }
+${
+  clinicalCase.manejo_aps.criterio_ingreso_programa.aplica
+    ? `- Programa: ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}`
+    : ""
+}
+
+EVALÚA SI EL ESTUDIANTE:
+1. **Derivación correcta**: ¿Identificó correctamente si el paciente requiere derivación o puede manejarse en CESFAM?
+   - Si el caso NO requiere derivación: ¿reconoció que puede manejarlo en APS?
+   - Si el caso SÍ requiere derivación: ¿identificó esta necesidad?
+
+2. **Tipo de derivación adecuado**: Si propuso derivación, ¿al nivel correcto?
+   - "ambulatoria_especialista": derivación programada a especialista (ej: cardiólogo, endocrinólogo)
+   - "urgencia": derivación inmediata a servicio de urgencia por red flags
+   - "hospitalizacion": derivación para manejo intrahospitalario
+   - "no_requiere": puede manejarse completamente en CESFAM
+
+3. **Manejo inicial apropiado**: ¿Propuso acciones concretas en CESFAM antes o en lugar de derivar?
+   - Ejemplos: iniciar fármacos, educación, cambios de estilo de vida, exámenes de control
+
+4. **Consideró ingreso a programa**: Si aplica, ¿mencionó ingreso a programa APS?
+   - Ejemplos: PSCV, ERA, Salud Mental, PNI, PIE Adulto Mayor
+
+5. **Metas terapéuticas definidas**: ¿Estableció objetivos concretos y medibles?
+   - Ejemplos: PA <140/90, HbA1c <7%, IMC <25
+
+6. **Educación y seguimiento apropiados**: ¿Propuso plan de seguimiento y educación?
+   - Frecuencia de controles, temas educativos, duración
+
+7. **Consideró factores psicosociales**: ¿Identificó factores que modifican el manejo?
+   - Ejemplos: vive solo, sin cuidador, ideación suicida, abandono, riesgo social
+
+IMPORTANTE - RECOMENDACIONES ESPECÍFICAS:
+En "recomendaciones_especificas", debes proporcionar el manejo CORRECTO basado en el caso:
+
+- **derivacion**: Indica EXACTAMENTE qué hacer:
+  * Si NO requiere: "No requiere derivación, manejo completo en CESFAM"
+  * Si requiere ambulatoria: "Derivación ambulatoria a [cardiología/endocrinología/psiquiatría/etc] por [criterio específico del caso]"
+  * Si requiere urgencia: "Derivación urgente a servicio de urgencia por [red flag específico]"
+  
+- **programa_aps**: Indica el programa EXACTO del caso:
+  * "Ingreso a programa ${
+    clinicalCase.manejo_aps?.criterio_ingreso_programa.programa || "[programa]"
+  } por cumplir criterio: ${
+    clinicalCase.manejo_aps?.criterio_ingreso_programa.justificacion || "[criterio]"
+  }"
+  * O "No aplica ingreso a programa" si no corresponde
+
+- **metas_terapeuticas**: Usa las metas EXACTAS del caso:
+  ${JSON.stringify(clinicalCase.manejo_aps?.metas_terapeuticas || [])}
+  
+- **manejo_cesfam**: Acciones CONCRETAS del manejo inicial del caso:
+  ${JSON.stringify(clinicalCase.manejo_aps?.manejo_inicial || [])}
+
+- **educacion_paciente**: Temas educativos ESPECÍFICOS del caso:
+  ${JSON.stringify(
+    clinicalCase.manejo_aps?.seguimiento.educacion_obligatoria || []
+  )}
+
+- **seguimiento**: Plan ESPECÍFICO del caso:
+  "${clinicalCase.manejo_aps?.seguimiento.frecuencia || ""} - ${
+    clinicalCase.manejo_aps?.seguimiento.duracion || ""
+  }"
 `
     : ""
 }
@@ -460,17 +519,49 @@ NOTA: Todos los puntajes deben estar en escala de 1.0 a 7.0 (sistema chileno)
   ${
     clinicalCase.especialidad === "aps"
       ? `,"manejo": {
-    "derivacion_correcta": boolean,
-    "tipo_derivacion_adecuado": boolean,
-    "manejo_inicial_apropiado": boolean,
-    "considero_ingreso_programa": boolean,
-    "metas_terapeuticas_definidas": boolean,
-    "educacion_y_seguimiento_apropiados": boolean,
-    "considero_factores_psicosociales": boolean,
-    "comentario": string
+    "derivacion_correcta": boolean,  // true si identificó correctamente si requiere o no derivación
+    "tipo_derivacion_adecuado": boolean,  // true si el tipo de derivación propuesto coincide con el correcto
+    "manejo_inicial_apropiado": boolean,  // true si propuso acciones concretas en CESFAM
+    "considero_ingreso_programa": boolean,  // true si mencionó ingreso a programa APS cuando aplica
+    "metas_terapeuticas_definidas": boolean,  // true si estableció metas concretas y medibles
+    "educacion_y_seguimiento_apropiados": boolean,  // true si propuso plan de seguimiento
+    "considero_factores_psicosociales": boolean,  // true si identificó factores modificadores
+    "comentario": string,  // Feedback general sobre manejo (2-3 frases)
+    "recomendaciones_especificas": {
+      "derivacion": string,  // ESPECÍFICO: "No requiere derivación, manejo en CESFAM" o "Derivación ambulatoria a [especialidad] por [criterio]" o "Derivación urgente por [red flag]"
+      "programa_aps": string,  // ESPECÍFICO: "Ingreso a programa [nombre exacto] por cumplir criterio: [criterio específico]" o "No aplica programa"
+      "metas_terapeuticas": string[],  // ESPECÍFICAS: ["PA <140/90 mmHg", "HbA1c <7%", "IMC <25"] - usar valores del caso
+      "manejo_cesfam": string[],  // ESPECÍFICAS: ["Iniciar enalapril 10mg/día", "Educación en dieta DASH", "Control en 7 días"]
+      "educacion_paciente": string[],  // ESPECÍFICAS: ["Restricción de sal <5g/día", "Ejercicio 150min/semana", "Adherencia farmacológica"]
+      "seguimiento": string  // ESPECÍFICO: "Control en [plazo] para evaluar [parámetro]. Controles [frecuencia] hasta [meta]"
+    }
   }`
       : ""
   }
+}
+
+${
+  clinicalCase.especialidad === "aps"
+    ? `
+RECORDATORIO CRÍTICO PARA CASOS APS:
+Las "recomendaciones_especificas" deben contener el manejo CORRECTO del caso (no lo que hizo el estudiante).
+Usa los datos EXACTOS que aparecen en el caso clínico arriba:
+- Programa: usa el nombre exacto que aparece en criterio_ingreso_programa.programa
+- Metas: copia las metas de metas_terapeuticas del caso
+- Manejo CESFAM: copia las acciones de manejo_inicial del caso
+- Educación: copia los temas de educacion_obligatoria del caso
+- Seguimiento: usa frecuencia y duracion del seguimiento del caso
+- Derivación: usa tipo_derivacion y criterios/red_flags del caso
+
+Estas recomendaciones son para que el estudiante aprenda el manejo CORRECTO.
+
+⚠️ IMPORTANTE - NO INCLUYAS REFERENCIAS A FUENTES:
+NO incluyas ninguna referencia bibliográfica en el formato【número†source】o similar.
+Las recomendaciones deben ser texto limpio y legible, sin marcadores de fuentes.
+Ejemplo INCORRECTO: "PA <140/90 mmHg【4:10†source】"
+Ejemplo CORRECTO: "PA <140/90 mmHg"
+`
+    : ""
 }
 
 NO incluyas explicaciones fuera del JSON.

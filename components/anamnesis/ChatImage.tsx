@@ -175,9 +175,9 @@ export function getImagePath(
   if (sexo === "masculino") {
     // Usar carpeta "hombre"
     finalBasePath = `${basePath}/hombre`;
-    // Manejar typo en el nombre del archivo (soprendido vs sorprendido)
+    // Manejar typo en el nombre del archivo
     if (imageType === "sorprendido") {
-      fileName = "soprendido";
+      fileName = "sorprendido";
     }
   } else if (sexo === "femenino") {
     // Usar carpeta "mujer"

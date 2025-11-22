@@ -8,6 +8,21 @@ import type { ClinicalCase, ChatMessage, FeedbackResult } from "@/types/case";
  */
 
 /**
+ * Removes source references from text (e.g., 【4:6†source】)
+ */
+function cleanSourceReferences(text: string): string {
+  // Remove references in the format 【number:number†source】
+  return text.replace(/【\d+:\d+†source】/g, '').trim();
+}
+
+/**
+ * Cleans source references from array of strings
+ */
+function cleanArrayReferences(arr: string[]): string[] {
+  return arr.map(item => cleanSourceReferences(item));
+}
+
+/**
  * Generates comprehensive feedback for a completed simulation
  */
 export async function generateFeedback(
@@ -53,6 +68,10 @@ export async function generateFeedback(
         antecedentes: feedbackData.puntajes?.antecedentes || 1,
         razonamiento_clinico: feedbackData.puntajes?.razonamiento_clinico || 1,
         comunicacion_empatia: feedbackData.puntajes?.comunicacion_empatia || 1,
+        // Incluir puntaje de manejo/derivación si es caso APS
+        ...(clinicalCase.especialidad === "aps" && feedbackData.puntajes?.manejo_derivacion !== undefined
+          ? { manejo_derivacion: feedbackData.puntajes.manejo_derivacion }
+          : {}),
       },
       comentarios: {
         fortalezas: feedbackData.comentarios?.fortalezas || [],
@@ -65,6 +84,31 @@ export async function generateFeedback(
         diagnostico_real: clinicalCase.diagnostico_principal,
         comentario: feedbackData.diagnostico?.comentario || "",
       },
+      // Incluir evaluación de manejo si es caso APS
+      ...(clinicalCase.especialidad === "aps" && feedbackData.manejo
+        ? {
+            manejo: {
+              derivacion_correcta: feedbackData.manejo.derivacion_correcta || false,
+              tipo_derivacion_adecuado: feedbackData.manejo.tipo_derivacion_adecuado || false,
+              manejo_inicial_apropiado: feedbackData.manejo.manejo_inicial_apropiado || false,
+              considero_ingreso_programa: feedbackData.manejo.considero_ingreso_programa,
+              metas_terapeuticas_definidas: feedbackData.manejo.metas_terapeuticas_definidas,
+              educacion_y_seguimiento_apropiados: feedbackData.manejo.educacion_y_seguimiento_apropiados,
+              considero_factores_psicosociales: feedbackData.manejo.considero_factores_psicosociales,
+              comentario: cleanSourceReferences(feedbackData.manejo.comentario || ""),
+              recomendaciones_especificas: feedbackData.manejo.recomendaciones_especificas
+                ? {
+                    derivacion: cleanSourceReferences(feedbackData.manejo.recomendaciones_especificas.derivacion || ""),
+                    programa_aps: cleanSourceReferences(feedbackData.manejo.recomendaciones_especificas.programa_aps || ""),
+                    metas_terapeuticas: cleanArrayReferences(feedbackData.manejo.recomendaciones_especificas.metas_terapeuticas || []),
+                    manejo_cesfam: cleanArrayReferences(feedbackData.manejo.recomendaciones_especificas.manejo_cesfam || []),
+                    educacion_paciente: cleanArrayReferences(feedbackData.manejo.recomendaciones_especificas.educacion_paciente || []),
+                    seguimiento: cleanSourceReferences(feedbackData.manejo.recomendaciones_especificas.seguimiento || ""),
+                  }
+                : undefined,
+            },
+          }
+        : {}),
     };
 
     return feedback;

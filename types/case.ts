@@ -51,7 +51,7 @@ export interface ClinicalCase {
   manejo_aps?: {
     criterio_ingreso_programa: {
       aplica: boolean;
-      programa?: "PSCV" | "ERA" | "Salud_Mental" | "No_aplica";
+      programa?: string; // Abierto: PSCV, ERA, Salud Mental, PNI, PIE Adulto Mayor, etc.
       justificacion?: string;
     };
     metas_terapeuticas?: string[];
@@ -116,6 +116,14 @@ export interface FeedbackResult {
     educacion_y_seguimiento_apropiados?: boolean;
     considero_factores_psicosociales?: boolean;
     comentario: string;
+    recomendaciones_especificas?: {
+      derivacion: string;
+      programa_aps: string;
+      metas_terapeuticas: string[];
+      manejo_cesfam: string[];
+      educacion_paciente: string[];
+      seguimiento: string;
+    };
   };
 }
 
