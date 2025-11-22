@@ -23,19 +23,29 @@ export default function Consulta({ clinicalCase, messages, loading, input, onInp
   const handleGenerateExam = async () => {
     setGeneratingExam(true);
     try {
+      // Ejemplo: buscar ecografía abdominal con colelitiasis
       const response = await fetch("/api/generar-examen", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tipoExamen: "radiografia",
+          tipo: "ecografia",
+          clasificacion: "abdominal",
+          subclasificacion: "colelitiasis",
         }),
       });
 
       const data = await response.json();
-      if (data.success && data.data.imageUrl) {
-        onExamImageGenerated?.(data.data.imageUrl);
+      if (data.success) {
+        if (data.data.status === "found" && data.data.imageUrl) {
+          onExamImageGenerated?.(data.data.imageUrl);
+        } else if (data.data.status === null) {
+          console.log("Examen no encontrado:", data.data.message);
+          // Opcional: mostrar mensaje al usuario o manejar el caso
+        }
+      } else {
+        console.error("Error en respuesta:", data.error);
       }
     } catch (error) {
       console.error("Error generando imagen de examen:", error);
