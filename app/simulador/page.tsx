@@ -5,8 +5,26 @@ import { useRouter } from "next/navigation";
 import type { ClinicalCase, ChatMessage } from "@/types/case";
 import ChatBox from "@/components/ChatBox";
 
+interface ClinicalCaseResponse {
+  success: boolean;
+  data: {
+    simulationId: string;
+    initialMessage: string;
+    simulationDebug?: ClinicalCase
+    patientInfo: {
+      edad: number;
+      sexo: string;
+      ocupacion: string;
+      contexto_ingreso: string;
+    };
+    createdAt: Date;
+    especialidad: "medicina_interna" | "urgencia" | "respiratorio" | "digestivo" | "otro";
+    nivel_dificultad: "facil" | "medio" | "dificil";
+  };
+}
+
 export default function SimuladorPage() {
-  const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);
+  const [clinicalCase, setClinicalCase] = useState<ClinicalCaseResponse["data"] | null>(null);
   const [loading, setLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [diagnosticoEstudiante, setDiagnosticoEstudiante] = useState("");
@@ -30,8 +48,8 @@ export default function SimuladorPage() {
       });
       if (!res.ok) throw new Error("Error en la API");
 
-      const data = (await res.json()) as ClinicalCase;
-      setClinicalCase(data);
+      const data = (await res.json()) as ClinicalCaseResponse;
+      setClinicalCase(data?.data);  
     } catch (e) {
       console.error(e);
       alert("Error generando caso");
@@ -105,8 +123,8 @@ export default function SimuladorPage() {
               Chat con el Paciente
             </h2>
             <ChatBox
-              key={clinicalCase.id}
-              clinicalCase={clinicalCase}
+              key={clinicalCase?.simulationId}
+              clinicalCase={clinicalCase?.simulationDebug as ClinicalCase}
               onMessagesChange={setChatMessages}
             />
           </div>
@@ -117,10 +135,10 @@ export default function SimuladorPage() {
                 Información del Paciente
               </h3>
               <div className="space-y-2 text-sm">
-                <p><strong>Edad:</strong> {clinicalCase.paciente.edad} años</p>
-                <p><strong>Sexo:</strong> {clinicalCase.paciente.sexo}</p>
-                <p><strong>Ocupación:</strong> {clinicalCase.paciente.ocupacion}</p>
-                <p><strong>Contexto:</strong> {clinicalCase.paciente.contexto_ingreso}</p>
+                <p><strong>Edad:</strong> {clinicalCase.patientInfo.edad} años</p>
+                <p><strong>Sexo:</strong> {clinicalCase.patientInfo.sexo}</p>
+                <p><strong>Ocupación:</strong> {clinicalCase.patientInfo.ocupacion}</p>
+                <p><strong>Contexto:</strong> {clinicalCase.patientInfo.contexto_ingreso}</p>
               </div>
             </div>
             

@@ -1,10 +1,15 @@
 export interface ClinicalCase {
   id: string;
-  especialidad: "medicina_interna" | "urgencia" | "respiratorio" | "digestivo" | "otro";
+  especialidad:
+    | "medicina_interna"
+    | "urgencia"
+    | "respiratorio"
+    | "digestivo"
+    | "otro";
   nivel_dificultad: "facil" | "medio" | "dificil";
   paciente: {
     edad: number;
-    sexo:  "masculino" | "femenino" | "otro";
+    sexo: "masculino" | "femenino" | "otro";
     ocupacion: string;
     contexto_ingreso: string;
   };
@@ -29,10 +34,13 @@ export interface ClinicalCase {
     };
     hallazgos_relevantes: string[];
   };
-  examenes: Record<string, {
-    realizado: boolean;
-    resultado?: string;
-  }>;
+  examenes: Record<
+    string,
+    {
+      realizado: boolean;
+      resultado?: string;
+    }
+  >;
   diagnostico_principal: string;
   diagnosticos_diferenciales: string[];
   info_oculta: string[];
@@ -65,4 +73,21 @@ export interface FeedbackResult {
     diagnostico_real: string;
     comentario: string;
   };
+}
+
+export interface PatientContext {
+  clinicalCase: ClinicalCase;
+  personalityTraits?: string[];
+}
+
+export type SimulationStatus = "active" | "completed" | "abandoned";
+
+export interface Simulation {
+  id: string;
+  clinicalCase: ClinicalCase;
+  patientContext: PatientContext;
+  chatHistory: ChatMessage[];
+  status: SimulationStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }

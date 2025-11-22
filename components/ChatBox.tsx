@@ -9,13 +9,7 @@ interface ChatBoxProps {
 }
 
 export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content: `Hola doctor/a, ${clinicalCase.motivo_consulta}`,
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,25 +40,25 @@ export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          clinicalCase,
-        }),
-      });
+      // const res = await fetch("/api/chat", {
+      // //   method: "POST",
+      // //   headers: { "Content-Type": "application/json" },
+      // //   body: JSON.stringify({
+      // //     messages: [...messages, userMessage],
+      // //     clinicalCase,
+      // //   }),
+      // // });
 
-      if (!res.ok) throw new Error("Error en chat");
+      // // if (!res.ok) throw new Error("Error en chat");
 
-      const data = await res.json();
-      const assistantMessage: ChatMessage = {
-        role: "assistant",
-        content: data.message,
-        timestamp: new Date(),
-      };
+      // // const data = await res.json();
+      // const assistantMessage: ChatMessage = {
+      //   role: "assistant",
+      //   content: data.message,
+      //   timestamp: new Date(),
+      // };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
       console.error(err);
       alert("Error enviando mensaje");

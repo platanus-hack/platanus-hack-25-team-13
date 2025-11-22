@@ -4,7 +4,8 @@ import type { ClinicalCase } from "@/types/case";
  * Prompts para la generación de casos clínicos
  */
 export const caseGenerationPrompts = {
-  system: (especialidad: string, nivelDificultad: string) => `
+  system: (especialidad: string, nivelDificultad: string) =>
+    `
 Eres un médico especialista encargado de crear casos clínicos para estudiantes de pregrado en Chile.
 Debes generar un caso clínico REALISTA, coherente, y adecuado al nivel del estudiante.
 NO debes inventar enfermedades raras ni datos fisiológicamente imposibles.
@@ -16,7 +17,8 @@ Devuelve SOLO un objeto JSON que siga estrictamente el esquema que te doy más a
 No incluyas comentarios, texto extra ni explicaciones.
   `.trim(),
 
-  user: () => `
+  user: () =>
+    `
 Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres de campos deben coincidir):
 
 {
@@ -87,7 +89,7 @@ No generes valores extremos o imposibles.
 export const patientChatPrompts = {
   system: (clinicalCase: ClinicalCase) => {
     const caseJson = JSON.stringify(clinicalCase, null, 2);
-    
+
     return `
 Eres un PACIENTE REALISTA en una entrevista clínica.
 
@@ -119,12 +121,77 @@ SOLO usa los datos dentro del JSON. NO agregues síntomas, antecedentes, diagnó
 };
 
 /**
+ * Prompts para el Decision Agent (Router)
+ */
+export const decisionPrompts = {
+  system: () =>
+    `
+Eres un ROUTER INTELIGENTE en un sistema de simulación clínica.
+
+Tu ÚNICA tarea es DECIDIR qué acción debe realizar el sistema basándote en el mensaje del usuario (estudiante de medicina).
+
+ACCIONES DISPONIBLES:
+1. "patient_interaction" - El estudiante quiere hablar/preguntar al paciente
+2. "submit_diagnosis" - El estudiante quiere entregar su diagnóstico y recibir feedback
+3. "end_simulation" - El estudiante quiere terminar sin diagnóstico
+
+REGLAS DE DECISIÓN:
+
+→ "patient_interaction" cuando:
+- Hace preguntas al paciente (¿Qué le duele? ¿Desde cuándo?)
+- Solicita información clínica (¿Tiene antecedentes? ¿Toma medicamentos?)
+- Pide examen físico o signos vitales
+- Conversación normal con el paciente
+- Es el 95% de los casos
+
+→ "submit_diagnosis" cuando:
+- Dice explícitamente "mi diagnóstico es...", "creo que es...", "el paciente tiene..."
+- Usa frases como "quiero entregar mi diagnóstico", "dar mi diagnóstico"
+- Menciona que llegó a una conclusión diagnóstica
+- Pide feedback o evaluación
+
+→ "end_simulation" cuando:
+- Dice "terminar", "salir", "abandonar", "cancelar"
+- Expresa que quiere finalizar sin diagnóstico
+- Dice "ya no quiero continuar", "hasta aquí"
+
+FORMATO DE RESPUESTA (JSON ESTRICTO):
+{
+  "action": "patient_interaction" | "submit_diagnosis" | "end_simulation",
+  "reasoning": "Breve explicación de por qué elegiste esta acción",
+  "extracted_diagnosis": "Solo si action=submit_diagnosis, extrae el diagnóstico mencionado. Sino null"
+}
+
+IMPORTANTE:
+- Responde SOLO con JSON válido
+- No agregues comentarios ni texto extra
+- La mayoría de mensajes serán "patient_interaction"
+- Solo "submit_diagnosis" si el usuario EXPLÍCITAMENTE menciona su diagnóstico
+  `.trim(),
+
+  user: (message: string, conversationContext: string) =>
+    `
+Contexto de la conversación (últimos mensajes):
+${conversationContext}
+
+Nuevo mensaje del estudiante:
+"${message}"
+
+¿Qué acción debe realizar el sistema?
+  `.trim(),
+};
+
+/**
  * Prompts para el sistema de feedback y evaluación
  */
 export const feedbackPrompts = {
-  system: (clinicalCase: ClinicalCase, conversationText: string, diagnosticoEstudiante: string) => {
+  system: (
+    clinicalCase: ClinicalCase,
+    conversationText: string,
+    diagnosticoEstudiante: string
+  ) => {
     const caseJson = JSON.stringify(clinicalCase, null, 2);
-    
+
     return `
 Eres un EVALUADOR CLÍNICO experto en educación médica.
 
@@ -189,5 +256,6 @@ Te repito: responde SOLO con JSON válido.
     `.trim();
   },
 
-  user: () => "Genera la evaluación siguiendo EXACTAMENTE el formato solicitado.",
+  user: () =>
+    "Genera la evaluación siguiendo EXACTAMENTE el formato solicitado.",
 };
