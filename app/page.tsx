@@ -14,7 +14,7 @@ export default function Home() {
     setIsLoading(true);
     // Después de 3 segundos, navegar a antecedentes médicos
     setTimeout(() => {
-      router.push("/antecedentes-medicos");
+      router.push("/anamnesis");
     }, 3000);
   };
 
@@ -290,7 +290,7 @@ export default function Home() {
                       <button
                         onClick={() => {
                           // Aquí puedes agregar la lógica para revisar el caso
-                          router.push(`/antecedentes-medicos?id=${simulacion.id}`);
+                          router.push(`/anamnesis?id=${simulacion.id}`);
                         }}
                         className="flex items-center gap-1 text-[#1098f7] hover:text-[#0d7fd6] text-[10px] font-medium hover:underline transition-all duration-200"
                       >
