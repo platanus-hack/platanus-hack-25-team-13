@@ -22,7 +22,7 @@ export default function AntecedentesMedicos({
   medicamentosYAlergias,
 }: AntecedentesMedicosProps) {
   return (
-    <div className="w-full max-w-2xl mx-auto bg-[#ffffff] rounded-lg shadow-lg border-[0.5px] border-[#1098f7] p-4">
+    <div className="w-full max-w-2xl mx-auto bg-[#ffffff] rounded-lg shadow-lg border-[0.5px] border-[#1098f7] p-4 pt-8">
       <h2 className="text-xl font-bold text-[#00072d] mb-4 pb-3 border-b-[0.5px] border-[#1098f7]">
         Antecedentes Médicos
       </h2>
