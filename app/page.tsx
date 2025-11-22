@@ -19,6 +19,7 @@ export default function Home() {
   };
 
   const handleGenerateCase = async () => {
+    setIsLoading(true);
     setGeneratingCase(true);
     try {
       const res = await fetch("/api/generar-caso", {
@@ -33,14 +34,16 @@ export default function Home() {
 
       const data = await res.json();
       if (data?.success && data?.data) {
-        // Guardar el caso en sessionStorage y navegar a simulador
+        // Guardar el caso en sessionStorage y navegar a anamnesis
         sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
-        router.push("/simulador");
+        router.push("/anamnesis");
+      } else {
+        throw new Error("No se pudo generar el caso");
       }
     } catch (e) {
       console.error(e);
       alert("Error generando caso");
-    } finally {
+      setIsLoading(false);
       setGeneratingCase(false);
     }
   };
