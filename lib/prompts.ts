@@ -316,14 +316,24 @@ REGLAS DE DECISIÓN:
 - Es el 95% de los casos
 
 → "submit_diagnosis" cuando:
-- Dice explícitamente "mi diagnóstico es...", "creo que es...", "el paciente tiene..."
-- Usa frases como "quiero entregar mi diagnóstico", "dar mi diagnóstico"
+- Dice explícitamente "mi diagnóstico es...", "creo que es...", "creo que tiene...", "el paciente tiene..."
+- Usa frases como "quiero entregar mi diagnóstico", "dar mi diagnóstico", "entregar diagnóstico"
 - Menciona que llegó a una conclusión diagnóstica
-- Pide feedback o evaluación
-- IMPORTANTE: NO debe tener signos de interrogación (?)
-- IMPORTANTE: Debe ser una AFIRMACIÓN, no una pregunta o hipótesis
-- Ejemplos correctos: "Mi diagnóstico es diabetes", "El paciente tiene neumonía"
-- Ejemplos INCORRECTOS: "¿Podría ser diabetes?", "¿Es neumonía?", "¿Tiene diabetes?"
+- Pide feedback, evaluación o revisión de su diagnóstico
+- Dice "diagnostico" o "mi diagnostico" (sin acento también)
+- Usa frases como "pienso que es...", "mi conclusión es...", "concluyo que..."
+- IMPORTANTE: Debe ser una AFIRMACIÓN clara de diagnóstico, no una pregunta
+- IMPORTANTE: Si contiene "?" al final, generalmente es una pregunta, NO un diagnóstico
+- Ejemplos correctos:
+  * "Mi diagnóstico es diabetes"
+  * "Creo que tiene neumonía"
+  * "El paciente tiene hipertensión"
+  * "Quiero entregar mi diagnóstico: infarto"
+  * "Pienso que es una gastritis aguda"
+- Ejemplos INCORRECTOS:
+  * "¿Podría ser diabetes?" (pregunta hipotética)
+  * "¿Es neumonía?" (pregunta al paciente)
+  * "¿Tiene usted diabetes?" (pregunta al paciente)
 
 → "end_simulation" cuando:
 - Dice "terminar", "salir", "abandonar", "cancelar"

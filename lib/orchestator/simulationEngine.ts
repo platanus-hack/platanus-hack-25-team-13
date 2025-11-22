@@ -246,7 +246,7 @@ ${caseGenerationPrompts.user()}`;
           // Mark simulation as completed
           simulation.status = "completed";
 
-          response = "He recibido tu diagnóstico. Aquí está tu evaluación.";
+          response = "✓ Diagnóstico recibido. Generando tu evaluación...";
           break;
 
         case "end_simulation":
