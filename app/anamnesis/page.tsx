@@ -75,7 +75,13 @@ export default function AnamnesisPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
-      <div className="flex-1 flex flex-col items-center pt-20 pb-32 p-4">
+      <div className="fixed top-20 left-0 right-0 z-10 flex justify-center pt-2 pb-2">
+        <div className="w-full max-w-2xl px-4">
+          <Stepper steps={steps} currentStep={currentStep} />
+        </div>
+      </div>
+      
+      <div className="flex-1 flex flex-col items-center pt-36 pb-4 p-4">
         {currentStep === 0 && (
           <>
             <AntecedentesMedicos
@@ -102,10 +108,6 @@ export default function AnamnesisPage() {
         {currentStep === 1 && (
           <Consulta clinicalCase={clinicalCase} />
         )}
-      </div>
-      
-      <div className="fixed bottom-0 left-0 right-0 pb-8 flex justify-center">
-        <Stepper steps={steps} currentStep={currentStep} />
       </div>
     </div>
   );
