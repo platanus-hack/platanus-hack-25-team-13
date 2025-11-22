@@ -87,12 +87,11 @@ export interface ChatMessage {
 
 export interface FeedbackResult {
   puntajes: {
-    motivo_consulta: number;
-    sintomas_relevantes: number;
+    anamnesis_motivo_consulta: number;
+    identificacion_sintomas: number;
     antecedentes: number;
-    red_flags: number;
     razonamiento_clinico: number;
-    comunicacion: number;
+    comunicacion_empatia: number;
     // Para casos APS
     manejo_derivacion?: number;
   };
@@ -111,7 +110,6 @@ export interface FeedbackResult {
   manejo?: {
     derivacion_correcta: boolean;
     tipo_derivacion_adecuado: boolean;
-    identifico_red_flags: boolean;
     manejo_inicial_apropiado: boolean;
     considero_ingreso_programa?: boolean;
     metas_terapeuticas_definidas?: boolean;

@@ -11,30 +11,30 @@ interface FeedbackProps {
   feedback?: any;
 }
 
-function GaugeChart({ value, max = 5 }: { value: number; max?: number }) {
-  const percentage = (value / max) * 100;
+function GaugeChart({ value, max = 7 }: { value: number; max?: number }) {
+  const percentage = ((value - 1) / (max - 1)) * 100;
   
   const getColor = () => {
-    if (value >= 4.0) return "#10b981";
-    if (value >= 3.0) return "#f59e0b";
+    if (value >= 5.0) return "#10b981";
+    if (value >= 4.0) return "#f59e0b";
     return "#ef4444";
   };
 
   const getGradientColor = () => {
-    if (value >= 4.0) return ["#10b981", "#059669", "#047857"];
-    if (value >= 3.0) return ["#f59e0b", "#d97706", "#b45309"];
+    if (value >= 5.0) return ["#10b981", "#059669", "#047857"];
+    if (value >= 4.0) return ["#f59e0b", "#d97706", "#b45309"];
     return ["#ef4444", "#dc2626", "#b91c1c"];
   };
 
   const getEmoji = () => {
-    if (value >= 4.0) return "🎉";
-    if (value >= 3.0) return "⚠️";
+    if (value >= 5.0) return "🎉";
+    if (value >= 4.0) return "⚠️";
     return "❌";
   };
 
   const getText = () => {
-    if (value >= 4.0) return "Excelente";
-    if (value >= 3.0) return "Regular";
+    if (value >= 5.0) return "Excelente";
+    if (value >= 4.0) return "Regular";
     return "Necesita Mejora";
   };
 
@@ -93,12 +93,12 @@ function GaugeChart({ value, max = 5 }: { value: number; max?: number }) {
 }
 
 const puntajeLabels: Record<string, string> = {
-  motivo_consulta: "Exploración del motivo de consulta",
-  sintomas_relevantes: "Interrogatorio de síntomas",
-  antecedentes: "Evaluación de antecedentes",
-  red_flags: "Detección de red flags",
-  razonamiento_clinico: "Razonamiento clínico",
-  comunicacion: "Comunicación con el paciente",
+  anamnesis_motivo_consulta: "Anamnesis y motivo de consulta",
+  identificacion_sintomas: "Identificación de síntomas y signos",
+  antecedentes: "Antecedentes mórbidos y farmacológicos",
+  razonamiento_clinico: "Razonamiento clínico y diagnóstico diferencial",
+  comunicacion_empatia: "Comunicación efectiva y empatía",
+  manejo_derivacion: "Manejo y decisiones de derivación (APS)",
 };
 
 export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
@@ -134,8 +134,8 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
   const debilidades = comentarios.debilidades || [];
   const sugerencias = comentarios.sugerencias || [];
 
-  // Determine if passed (nota >= 3.0 out of 5)
-  const isPassed = notaPromedio >= 3.0;
+  // Determine if passed (nota >= 4.0 out of 7.0, sistema chileno)
+  const isPassed = notaPromedio >= 4.0;
 
   const handleDownload = () => {
     const doc = new jsPDF();
@@ -184,7 +184,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
     
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text(`${notaPromedio.toFixed(1)}/5.0`, margin, yPosition);
+    doc.text(`${notaPromedio.toFixed(1)}/7.0`, margin, yPosition);
     yPosition += 12;
 
     // Puntajes por Criterio
@@ -211,7 +211,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
       doc.text(label, margin + 2, yPosition + 1);
       
       doc.setFont("helvetica", "bold");
-      doc.text(`${score}/5`, pageWidth - margin - 10, yPosition + 1, { align: "right" });
+      doc.text(`${score.toFixed(1)}/7.0`, pageWidth - margin - 10, yPosition + 1, { align: "right" });
       
       yPosition += 6;
     });
@@ -329,7 +329,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
   const handleShare = async () => {
     const shareData = {
       title: `Feedback Simulación: ${diagnosticoReal}`,
-      text: `Nota: ${notaPromedio.toFixed(1)}/5.0 - ${isPassed ? 'Aprobado' : 'Reprobado'}`,
+      text: `Nota: ${notaPromedio.toFixed(1)}/7.0 - ${isPassed ? 'Aprobado' : 'Reprobado'}`,
       url: window.location.href,
     };
 
@@ -435,7 +435,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
             <div className="space-y-3">
               {Object.entries(puntajes).map(([key, value]) => {
                 const numValue = value as number;
-                const percentage = (numValue / 5) * 100;
+                const percentage = Math.max(0, ((numValue - 1) / 6) * 100);
                 return (
                   <div key={key}>
                     <div className="flex justify-between mb-1">
@@ -443,7 +443,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                         {puntajeLabels[key] || key}
                       </span>
                       <span className="text-xs font-bold text-[#1098f7]">
-                        {numValue}/5
+                        {numValue.toFixed(1)}/7.0
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">

@@ -178,11 +178,11 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
     ]
   },
   "examenes": {
-    "hemograma": {
+    "<nombre_examen_1>": {
       "realizado": true,
-      "resultado": "Describe de forma resumida"
+      "resultado": "Resumen breve del resultado"
     },
-    "endoscopia": {
+    "<nombre_examen_2>": {
       "realizado": false
     }
   },
@@ -385,13 +385,12 @@ TU ROL:
 - Evalúas SOLO en base a la entrevista + caso.
 - Entregas FEEDBACK FORMATIVO y CONSTRUCTIVO, tal como en una rúbrica OSCE.
 
-CRITERIOS A EVALUAR (puntaje 1 a 5):
-1. Exploración del motivo de consulta
-2. Interrogatorio dirigido a síntomas relevantes
-3. Evaluación de antecedentes importantes
-4. Detección de "red flags"
-5. Claridad y orden del razonamiento clínico
-6. Comunicación y trato con el paciente
+CRITERIOS A EVALUAR (puntaje 1.0 a 7.0, escala chilena):
+1. Anamnesis y exploración del motivo de consulta
+2. Identificación de síntomas y signos relevantes
+3. Antecedentes mórbidos y farmacológicos
+4. Razonamiento clínico y diagnóstico diferencial
+5. Comunicación efectiva y empatía con el paciente
 ${
   clinicalCase.especialidad === "aps"
     ? "7. Manejo y decisiones de derivación (APS)"
@@ -405,11 +404,11 @@ EVALUACIÓN ESPECÍFICA PARA APS:
 Además de los criterios generales, evalúa:
 - ¿Identificó correctamente la necesidad de derivación?
 - ¿Propuso el tipo de derivación adecuado? (ambulatoria vs urgente)
-- ¿Reconoció los red flags de derivación urgente?
 - ¿Planteó manejo inicial apropiado en CESFAM?
 - ¿Consideró ingreso a programa si aplica?
 - ¿Definió metas terapéuticas claras?
 - ¿Propuso educación y seguimiento adecuados?
+- ¿Consideró factores psicosociales relevantes?
 
 Caso requiere derivación: ${
         clinicalCase.manejo_aps.derivacion.requiere_derivacion
@@ -436,15 +435,15 @@ COMPARACIÓN DIAGNÓSTICA:
 - Indica si es correcto, incompleto, o incorrecto.
 
 FORMATO DE RESPUESTA (OBLIGATORIO, JSON ESTRICTO):
+NOTA: Todos los puntajes deben estar en escala de 1.0 a 7.0 (sistema chileno)
 
 {
   "puntajes": {
-    "motivo_consulta": number,
-    "sintomas_relevantes": number,
+    "anamnesis_motivo_consulta": number,
+    "identificacion_sintomas": number,
     "antecedentes": number,
-    "red_flags": number,
     "razonamiento_clinico": number,
-    "comunicacion": number
+    "comunicacion_empatia": number
     ${clinicalCase.especialidad === "aps" ? ',"manejo_derivacion": number' : ""}
   },
   "comentarios": {
@@ -463,7 +462,6 @@ FORMATO DE RESPUESTA (OBLIGATORIO, JSON ESTRICTO):
       ? `,"manejo": {
     "derivacion_correcta": boolean,
     "tipo_derivacion_adecuado": boolean,
-    "identifico_red_flags": boolean,
     "manejo_inicial_apropiado": boolean,
     "considero_ingreso_programa": boolean,
     "metas_terapeuticas_definidas": boolean,
