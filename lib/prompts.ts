@@ -320,6 +320,10 @@ REGLAS DE DECISIÓN:
 - Usa frases como "quiero entregar mi diagnóstico", "dar mi diagnóstico"
 - Menciona que llegó a una conclusión diagnóstica
 - Pide feedback o evaluación
+- IMPORTANTE: NO debe tener signos de interrogación (?)
+- IMPORTANTE: Debe ser una AFIRMACIÓN, no una pregunta o hipótesis
+- Ejemplos correctos: "Mi diagnóstico es diabetes", "El paciente tiene neumonía"
+- Ejemplos INCORRECTOS: "¿Podría ser diabetes?", "¿Es neumonía?", "¿Tiene diabetes?"
 
 → "end_simulation" cuando:
 - Dice "terminar", "salir", "abandonar", "cancelar"
@@ -337,7 +341,10 @@ IMPORTANTE:
 - Responde SOLO con JSON válido
 - No agregues comentarios ni texto extra
 - La mayoría de mensajes serán "patient_interaction"
-- Solo "submit_diagnosis" si el usuario EXPLÍCITAMENTE menciona su diagnóstico
+- Solo "submit_diagnosis" si el usuario EXPLÍCITAMENTE menciona su diagnóstico como AFIRMACIÓN
+- Si el mensaje contiene signos de interrogación (?), casi siempre es "patient_interaction"
+- Las hipótesis o dudas ("¿podría ser...?", "¿será...?") son "patient_interaction", NO diagnóstico
+- Un diagnóstico debe ser una afirmación clara y definitiva
   `.trim(),
 
   user: (message: string, conversationContext: string) =>

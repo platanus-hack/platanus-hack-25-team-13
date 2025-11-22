@@ -74,6 +74,23 @@ export async function decideAction(
       };
     }
 
+    // Additional validation: If LLM says "submit_diagnosis" but message has question marks,
+    // override to "patient_interaction" (safety check)
+    if (
+      decision.action === "submit_diagnosis" &&
+      (message.includes("?") || message.includes("¿"))
+    ) {
+      console.warn(
+        "LLM suggested submit_diagnosis but message contains question marks. Overriding to patient_interaction."
+      );
+      return {
+        action: "patient_interaction",
+        reasoning:
+          "Message contains question marks - treating as hypothesis/question, not diagnosis",
+        extractedDiagnosis: null,
+      };
+    }
+
     return {
       action: decision.action as SystemAction,
       reasoning: decision.reasoning || "No reasoning provided",
@@ -96,6 +113,12 @@ export async function decideAction(
  */
 export function isLikelyDiagnosisSubmission(message: string): boolean {
   const lowerMessage = message.toLowerCase();
+
+  // First check: If message contains question marks, it's likely NOT a diagnosis
+  // (it's a hypothesis or question to the patient)
+  if (message.includes("?") || message.includes("¿")) {
+    return false;
+  }
 
   const diagnosisKeywords = [
     "mi diagnóstico",
