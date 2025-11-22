@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClinicalCase } from "@/types/case";
-import AntecedentesMedicos from "../../components/medical-history/AntecedentesMedicos";
-import Consulta from "../../components/consulta/Consulta";
+import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
+import Consulta from "../../components/anamnesis/Consulta";
 import Stepper from "../../components/Stepper";
 
 export default function AnamnesisPage() {
