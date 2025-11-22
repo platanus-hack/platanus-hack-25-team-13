@@ -53,6 +53,10 @@ interface ChatImageProps {
    * Texto informativo a mostrar debajo del avatar (ej: nombre, edad del paciente)
    */
   infoText?: string;
+  /**
+   * Sexo del paciente para determinar la carpeta de imágenes ("masculino" usa /avatares/hombre/)
+   */
+  sexo?: "masculino" | "femenino" | "otro";
 }
 
 /**
@@ -156,15 +160,25 @@ export function determineImageType(
  */
 export function getImagePath(
   imageType: ImageType,
-  basePath: string = "/avatares"
+  basePath: string = "/avatares",
+  sexo?: "masculino" | "femenino" | "otro"
 ): string {
   // Si es una ruta absoluta o URL, devolverla tal cual
   if (imageType.startsWith("/") || imageType.startsWith("http")) {
     return imageType;
   }
 
+  // Si el paciente es masculino, usar carpeta "hombre"
+  const finalBasePath = sexo === "masculino" ? `${basePath}/hombre` : basePath;
+
+  // Manejar typo en el nombre del archivo (soprendido vs sorprendido)
+  let fileName = imageType;
+  if (imageType === "sorprendido" && sexo === "masculino") {
+    fileName = "soprendido"; // Corregir typo en carpeta hombre
+  }
+
   // Si es un tipo predefinido, construir la ruta
-  return `${basePath}/${imageType}.png`;
+  return `${finalBasePath}/${fileName}.png`;
 }
 
 export default function ChatImage({ 
@@ -177,7 +191,8 @@ export default function ChatImage({
   width,
   height,
   className = "",
-  infoText
+  infoText,
+  sexo
 }: ChatImageProps) {
   const [currentImageType, setCurrentImageType] = useState<ImageType>("neutral");
   const [imageError, setImageError] = useState(false);
@@ -194,7 +209,7 @@ export default function ChatImage({
     setImageError(false); // Reset error cuando cambia la imagen
   }, [imageType, step, loading, lastMessageRole, lastMessageContent]);
 
-  const imagePath = getImagePath(currentImageType, imageBasePath);
+  const imagePath = getImagePath(currentImageType, imageBasePath, sexo);
 
   return (
     <div className={`flex flex-col items-center justify-center h-full p-4 ${className}`}>

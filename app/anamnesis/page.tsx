@@ -353,6 +353,7 @@ export default function AnamnesisPage() {
                       : undefined
                   }
                   infoText={`${finalPacienteData.nombre}, ${finalPacienteData.edad} años`}
+                  sexo={finalClinicalCase.paciente.sexo}
                 />
               </div>
             </div>
