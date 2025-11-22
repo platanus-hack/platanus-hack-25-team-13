@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ClinicalCase, ChatMessage } from "@/types/case";
 import ChatBox from "./ChatBox";
 import ChatInput from "./ChatInput";
@@ -12,10 +13,46 @@ interface ConsultaProps {
   onInputChange: (value: string) => void;
   onSend: () => void;
   loadingInput: boolean;
+  onExamImageGenerated?: (imageUrl: string) => void;
 }
 
-export default function Consulta({ clinicalCase, messages, loading, input, onInputChange, onSend, loadingInput }: ConsultaProps) {
+export default function Consulta({ clinicalCase, messages, loading, input, onInputChange, onSend, loadingInput, onExamImageGenerated }: ConsultaProps) {
   const isDev = process.env.NEXT_PUBLIC_DEV === "true";
+  const [generatingExam, setGeneratingExam] = useState(false);
+
+  const handleGenerateExam = async () => {
+    setGeneratingExam(true);
+    try {
+      // Ejemplo: buscar ecografía abdominal con colelitiasis
+      const response = await fetch("/api/generar-examen", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tipo: "ecografia",
+          clasificacion: "abdominal",
+          subclasificacion: "colelitiasis",
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        if (data.data.status === "found" && data.data.imageUrl) {
+          onExamImageGenerated?.(data.data.imageUrl);
+        } else if (data.data.status === null) {
+          console.log("Examen no encontrado:", data.data.message);
+          // Opcional: mostrar mensaje al usuario o manejar el caso
+        }
+      } else {
+        console.error("Error en respuesta:", data.error);
+      }
+    } catch (error) {
+      console.error("Error generando imagen de examen:", error);
+    } finally {
+      setGeneratingExam(false);
+    }
+  };
 
   return (
     <div className="w-full h-full bg-[#ffffff] rounded-lg shadow-lg border-[0.5px] border-[#1098f7] flex flex-col">
@@ -24,16 +61,25 @@ export default function Consulta({ clinicalCase, messages, loading, input, onInp
           Consulta
         </h2>
         {isDev && (
-          <button
-            onClick={() => {
-              if (typeof window !== 'undefined' && (window as any).__DEV_NEXT_STEP) {
-                (window as any).__DEV_NEXT_STEP();
-              }
-            }}
-            className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-1 px-3 rounded transition-colors"
-          >
-            DEV: Siguiente
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerateExam}
+              disabled={generatingExam}
+              className="text-xs bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium py-1 px-3 rounded transition-colors"
+            >
+              {generatingExam ? "Generando..." : "DEV: Generar Examen"}
+            </button>
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' && (window as any).__DEV_NEXT_STEP) {
+                  (window as any).__DEV_NEXT_STEP();
+                }
+              }}
+              className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-1 px-3 rounded transition-colors"
+            >
+              DEV: Siguiente
+            </button>
+          </div>
         )}
       </div>
       
