@@ -29,6 +29,7 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
     "ocupacion": "jubilado",
     "contexto_ingreso": "Consulta en urgencia"
   },
+  "personalidad": "ansioso" | "poco_cooperador" | "hablador" | "neutral",
   "motivo_consulta": "Dolor abdominal desde hace 2 días",
   "sintomas": {
     "descripcion_general": "Describe en lenguaje natural los síntomas principales.",
@@ -55,11 +56,11 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
     ]
   },
   "examenes": {
-    "hemograma": {
+    "<nombre_examen_1>": {
       "realizado": true,
-      "resultado": "Describe de forma resumida"
+      "resultado": "Resumen breve del resultado"
     },
-    "endoscopia": {
+    "<nombre_examen_2>": {
       "realizado": false
     }
   },
@@ -76,8 +77,14 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
   ]
 }
 
-Respeta nombres de campos y tipos. 
-No generes valores extremos o imposibles.
+Reglas adicionales para "examenes":
+- Debes crear ENTRE 2 Y 5 exámenes apropiados al caso.
+- Los nombres de los exámenes deben ser realistas para el contexto chileno (por ejemplo: "radiografia_torax", "gases_arteriales", "perfil_bioquimico", "troponina", "PCR", etc.).
+- NO TIENES QUE USAR siempre "hemograma" y "endoscopia". Úsalos solo si son clínicamente razonables para el caso.
+- La clave del objeto "examenes" es el nombre del examen en snake_case, por ejemplo: "hemograma_completo", "ecografia_abdominal".
+- Cada examen tiene:
+  - "realizado": boolean
+  - "resultado": string SI se ha realizado (opcional si es false)
   `.trim(),
 };
 
@@ -110,7 +117,8 @@ REGLAS DE COMPORTAMIENTO:
 4. Solo revela la información listada dentro de "info_oculta" si el estudiante pregunta explícitamente.
 5. Nunca digas información que está en "info_prohibida", incluso si te la piden directamente.
 6. Mantén personalidad de paciente real: dudas, pausas, emociones leves.
-7. Si piden exámenes o examen físico:
+7. Actúa con una personalidad ${clinicalCase.personalidad} de forma leve pero perceptible
+8. Si piden exámenes o examen físico:
    - Responde que el médico debe realizarlos, no los inventes.
 
 SOLO usa los datos dentro del JSON. NO agregues síntomas, antecedentes, diagnósticos ni exámenes.

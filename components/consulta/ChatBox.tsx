@@ -8,14 +8,9 @@ interface ChatBoxProps {
   onMessagesChange?: (messages: ChatMessage[]) => void;
 }
 
+
 export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content: `Hola doctor/a, ${clinicalCase.motivo_consulta}`,
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,6 +26,33 @@ export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps
   useEffect(() => {
     onMessagesChange?.(messages);
   }, [messages, onMessagesChange]);
+
+  useEffect(() => {
+    async function initConversation() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [], 
+            clinicalCase,
+          }),
+        });
+        const data = await res.json();
+        const firstMessage: ChatMessage = {
+          role: "assistant",
+          content: data.message,
+          timestamp: new Date(),
+        };
+        setMessages([firstMessage]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    initConversation();
+  }, [clinicalCase]);
 
   async function handleSend() {
     if (!input.trim() || loading) return;

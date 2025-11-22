@@ -17,6 +17,17 @@ export async function POST(req: Request) {
         content: m.content,
       }));
 
+    const initialUserPrompt = {
+      role: "user" as const,
+      content:
+        "El médico entra a la consulta y te saluda. Responde como paciente con tu presentación inicial natural.",
+    };
+
+    const messagesToSend =
+      formattedMessages.length === 0
+        ? [initialUserPrompt] 
+        : formattedMessages;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -24,7 +35,7 @@ export async function POST(req: Request) {
           role: "system", 
           content: patientChatPrompts.system(clinicalCase) 
         },
-        ...formattedMessages,
+        ...messagesToSend,
       ],
       temperature: 0.3,
       max_tokens: 400,

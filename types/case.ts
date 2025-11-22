@@ -8,6 +8,7 @@ export interface ClinicalCase {
     ocupacion: string;
     contexto_ingreso: string;
   };
+  personalidad: "ansioso" | "poco_cooperador" | "hablador" | "neutral";
   motivo_consulta: string;
   sintomas: {
     descripcion_general: string;
