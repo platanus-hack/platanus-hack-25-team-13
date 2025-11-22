@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ClinicalCase } from "@/types/case";
+import { FaStethoscope } from "react-icons/fa";
+import type { ClinicalCase, ChatMessage } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
+import ChatInput from "../../components/anamnesis/ChatInput";
 import Stepper from "../../components/Stepper";
 
 export default function AnamnesisPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Datos de ejemplo del paciente
   const pacienteData = {
@@ -71,7 +76,56 @@ export default function AnamnesisPage() {
 
   const handleStartConsulta = () => {
     setCurrentStep(1);
+    setMessages([
+      {
+        role: "assistant",
+        content: `Hola doctor/a, ${clinicalCase.motivo_consulta}`,
+        timestamp: new Date(),
+      },
+    ]);
   };
+
+  async function handleSend() {
+    if (!input.trim() || loading) return;
+
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: input,
+      timestamp: new Date(),
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: newMessages,
+          clinicalCase,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Error en chat");
+
+      const data = await res.json();
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: data.message,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      console.error(err);
+      alert("Error enviando mensaje");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
@@ -81,9 +135,9 @@ export default function AnamnesisPage() {
         </div>
       </div>
       
-      <div className="flex-1 flex flex-col items-center pt-36 pb-4 p-4">
+      <div className="flex-1 flex flex-col items-center pt-32 pb-4 p-4">
         {currentStep === 0 && (
-          <>
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <AntecedentesMedicos
               nombre={pacienteData.nombre}
               edad={pacienteData.edad}
@@ -97,16 +151,19 @@ export default function AnamnesisPage() {
             <div className="mt-6">
               <button
                 onClick={handleStartConsulta}
-                className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200"
+                className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
               >
+                <FaStethoscope className="w-4 h-4" />
                 Comenzar Consulta
               </button>
             </div>
-          </>
+          </div>
         )}
         
         {currentStep === 1 && (
-          <Consulta clinicalCase={clinicalCase} />
+          <div className="w-full max-w-4xl">
+            <Consulta clinicalCase={clinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
+          </div>
         )}
       </div>
     </div>

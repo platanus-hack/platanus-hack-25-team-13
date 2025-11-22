@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FaHeartbeat, FaHome, FaBell, FaCog, FaUser } from "react-icons/fa";
+import { FaHeartbeat, FaHome, FaBell, FaCog, FaUser, FaStethoscope } from "react-icons/fa";
 
 export default function Header() {
   const router = useRouter();
@@ -17,7 +17,10 @@ export default function Header() {
             <FaHeartbeat className="w-6 h-6 text-[#1098f7]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Simcito</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">Simcito</h1>
+              <FaStethoscope className="w-4 h-4" />
+            </div>
             <p className="text-xs text-white text-opacity-90">
               Tu centro de simulación virtual
             </p>
