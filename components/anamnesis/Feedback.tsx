@@ -382,7 +382,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
             className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
           >
             <FaDownload className="w-4 h-4" />
-            Descargar
+            Descargar informe
           </button>
           <button
             onClick={handleFinalize}
