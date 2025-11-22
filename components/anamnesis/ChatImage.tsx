@@ -57,6 +57,10 @@ interface ChatImageProps {
    * Sexo del paciente para determinar la carpeta de imágenes ("masculino" usa /avatares/hombre/)
    */
   sexo?: "masculino" | "femenino" | "otro";
+  /**
+   * Habilita la funcionalidad de zoom al hacer click (solo para imágenes de exámenes)
+   */
+  enableZoom?: boolean;
 }
 
 /**
@@ -203,7 +207,8 @@ export default function ChatImage({
   height,
   className = "",
   infoText,
-  sexo
+  sexo,
+  enableZoom = false
 }: ChatImageProps) {
   const [currentImageType, setCurrentImageType] = useState<ImageType>("neutral");
   const [imageError, setImageError] = useState(false);
@@ -262,9 +267,9 @@ export default function ChatImage({
         {!imageError ? (
           <>
             <div 
-              className="relative w-48 h-48 md:w-64 md:h-64 cursor-pointer group"
+              className={`relative w-48 h-48 md:w-64 md:h-64 ${enableZoom ? 'cursor-pointer group' : ''}`}
               style={width && height ? { width: `${width}px`, height: `${height}px` } : undefined}
-              onClick={handleImageClick}
+              onClick={enableZoom ? handleImageClick : undefined}
             >
               <Image
                 src={imagePath}
@@ -276,11 +281,13 @@ export default function ChatImage({
                 onError={() => setImageError(true)}
                 priority
               />
-              {/* Indicador de zoom - solo visible en hover, completamente invisible en estado normal */}
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none opacity-0 group-hover:opacity-10 transition-opacity duration-300">
-                <div className="bg-black bg-opacity-15 rounded-lg absolute inset-0" />
-                <FaSearchPlus className="text-white opacity-70 text-2xl drop-shadow-2xl relative z-10" />
-              </div>
+              {/* Indicador de zoom - solo visible si enableZoom está activado */}
+              {enableZoom && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none opacity-0 group-hover:opacity-50 transition-opacity duration-300">
+                  <div className="bg-black bg-opacity-10 rounded-lg absolute inset-0" />
+                  <FaSearchPlus className="text-white opacity-70 text-2xl drop-shadow-2xl relative z-10" />
+                </div>
+              )}
             </div>
             {infoText && (
               <div className="mt-4 text-center">

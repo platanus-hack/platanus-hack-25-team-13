@@ -348,6 +348,7 @@ export default function AnamnesisPage() {
                     imageBasePath=""
                     step={1}
                     infoText="Examen médico"
+                    enableZoom={true}
                   />
                 ) : (
                   <ChatImage 
