@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { FaUser } from "react-icons/fa";
+import { FaUser, FaTimes, FaSearchPlus } from "react-icons/fa";
 
 export type ImageType = 
   | "feliz" 
@@ -207,6 +207,7 @@ export default function ChatImage({
 }: ChatImageProps) {
   const [currentImageType, setCurrentImageType] = useState<ImageType>("neutral");
   const [imageError, setImageError] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const determinedType = determineImageType(
@@ -222,46 +223,129 @@ export default function ChatImage({
 
   const imagePath = getImagePath(currentImageType, imageBasePath, sexo);
 
+  // Cerrar modal con ESC
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isModalOpen) {
+        setIsModalOpen(false);
+      }
+    };
+
+    if (isModalOpen) {
+      document.addEventListener("keydown", handleEscape);
+      // Prevenir scroll del body cuando el modal está abierto
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [isModalOpen]);
+
+  const handleImageClick = () => {
+    if (!imageError) {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleCloseModal = (e: React.MouseEvent) => {
+    // Cerrar solo si se hace click en el fondo o en el botón de cerrar
+    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-close-modal]')) {
+      setIsModalOpen(false);
+    }
+  };
+
   return (
-    <div className={`flex flex-col items-center justify-center h-full p-4 ${className}`}>
-      {!imageError ? (
-        <>
-          <div 
-            className="relative w-48 h-48 md:w-64 md:h-64"
-            style={width && height ? { width: `${width}px`, height: `${height}px` } : undefined}
+    <>
+      <div className={`flex flex-col items-center justify-center h-full p-4 ${className}`}>
+        {!imageError ? (
+          <>
+            <div 
+              className="relative w-48 h-48 md:w-64 md:h-64 cursor-pointer group"
+              style={width && height ? { width: `${width}px`, height: `${height}px` } : undefined}
+              onClick={handleImageClick}
+            >
+              <Image
+                src={imagePath}
+                alt={`Chat image: ${currentImageType}`}
+                fill={!width || !height}
+                width={width}
+                height={height}
+                className="object-contain"
+                onError={() => setImageError(true)}
+                priority
+              />
+              {/* Indicador de zoom - solo visible en hover, completamente invisible en estado normal */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none opacity-0 group-hover:opacity-10 transition-opacity duration-300">
+                <div className="bg-black bg-opacity-15 rounded-lg absolute inset-0" />
+                <FaSearchPlus className="text-white opacity-70 text-2xl drop-shadow-2xl relative z-10" />
+              </div>
+            </div>
+            {infoText && (
+              <div className="mt-4 text-center">
+                <p className="text-sm font-medium text-gray-700">{infoText}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center">
+            <FaUser className="w-32 h-32 text-[#1098f7] opacity-50" />
+            <p className="mt-2 text-xs text-gray-400 text-center">
+              {typeof currentImageType === "string" && currentImageType.startsWith("/")
+                ? "Imagen no encontrada"
+                : `Imagen: ${currentImageType}`}
+            </p>
+            {infoText && (
+              <div className="mt-4 text-center">
+                <p className="text-sm font-medium text-gray-700">{infoText}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de zoom */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
+          onClick={handleCloseModal}
+        >
+          {/* Botón de cerrar */}
+          <button
+            data-close-modal
+            onClick={handleCloseModal}
+            className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70"
+            aria-label="Cerrar"
           >
+            <FaTimes className="w-6 h-6" />
+          </button>
+
+          {/* Imagen en pantalla completa */}
+          <div className="relative w-full h-full max-w-7xl max-h-[90vh] flex items-center justify-center">
             <Image
               src={imagePath}
-              alt={`Chat image: ${currentImageType}`}
-              fill={!width || !height}
-              width={width}
-              height={height}
-              className="object-contain transition-opacity duration-300"
-              onError={() => setImageError(true)}
+              alt={`Imagen ampliada: ${currentImageType}`}
+              fill
+              className="object-contain"
               priority
+              sizes="100vw"
             />
           </div>
+
+          {/* Texto informativo en el modal */}
           {infoText && (
-            <div className="mt-4 text-center">
-              <p className="text-sm font-medium text-gray-700">{infoText}</p>
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg">
+              <p className="text-sm font-medium">{infoText}</p>
             </div>
           )}
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center">
-          <FaUser className="w-32 h-32 text-[#1098f7] opacity-50" />
-          <p className="mt-2 text-xs text-gray-400 text-center">
-            {typeof currentImageType === "string" && currentImageType.startsWith("/")
-              ? "Imagen no encontrada"
-              : `Imagen: ${currentImageType}`}
-          </p>
-          {infoText && (
-            <div className="mt-4 text-center">
-              <p className="text-sm font-medium text-gray-700">{infoText}</p>
-            </div>
-          )}
+
+          {/* Indicador de que se puede cerrar con ESC */}
+          <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white text-xs px-3 py-1 rounded">
+            Presiona ESC para cerrar
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
