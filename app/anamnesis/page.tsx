@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AntecedentesMedicos from "../components/medical-history/AntecedentesMedicos";
-import Consulta from "../components/Consulta";
+import Consulta from "../components/consulta/Consulta";
 import Stepper from "../components/Stepper";
 
 export default function AnamnesisPage() {
