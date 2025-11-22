@@ -7,12 +7,11 @@ import type { ClinicalCase } from "@/types/case";
 
 type FeedbackResult = {
   puntajes: {
-    motivo_consulta: number;
-    sintomas_relevantes: number;
+    anamnesis_motivo_consulta: number;
+    identificacion_sintomas: number;
     antecedentes: number;
-    red_flags: number;
     razonamiento_clinico: number;
-    comunicacion: number;
+    comunicacion_empatia: number;
     manejo_derivacion?: number;
   };
   comentarios: {
@@ -29,7 +28,6 @@ type FeedbackResult = {
   manejo?: {
     derivacion_correcta: boolean;
     tipo_derivacion_adecuado: boolean;
-    identifico_red_flags: boolean;
     manejo_inicial_apropiado: boolean;
     considero_ingreso_programa?: boolean;
     metas_terapeuticas_definidas?: boolean;
@@ -70,12 +68,11 @@ export default function ResultadosPage() {
   const promedioGeneral = Object.values(feedback.puntajes).reduce((a, b) => a + b, 0) / Object.keys(feedback.puntajes).length;
 
   const puntajeLabels: Record<keyof typeof feedback.puntajes, string> = {
-    motivo_consulta: "Exploración del motivo de consulta",
-    sintomas_relevantes: "Interrogatorio de síntomas",
-    antecedentes: "Evaluación de antecedentes",
-    red_flags: "Detección de red flags",
-    razonamiento_clinico: "Razonamiento clínico",
-    comunicacion: "Comunicación con el paciente",
+    anamnesis_motivo_consulta: "Anamnesis y motivo de consulta",
+    identificacion_sintomas: "Identificación de síntomas y signos",
+    antecedentes: "Antecedentes mórbidos y farmacológicos",
+    razonamiento_clinico: "Razonamiento clínico y diagnóstico diferencial",
+    comunicacion_empatia: "Comunicación efectiva y empatía",
     manejo_derivacion: "Manejo y decisiones de derivación (APS)",
   };
 
@@ -160,14 +157,7 @@ export default function ResultadosPage() {
                     )}
                     <span className="text-sm">Tipo de derivación adecuado</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {feedback.manejo.identifico_red_flags ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500" />
-                    )}
-                    <span className="text-sm">Identificó red flags urgentes</span>
-                  </div>
+
                   <div className="flex items-center gap-2">
                     {feedback.manejo.manejo_inicial_apropiado ? (
                       <FaCheckCircle className="text-green-500" />
@@ -284,7 +274,7 @@ export default function ResultadosPage() {
           </div>
           <div className="space-y-4">
             {Object.entries(feedback.puntajes).map(([key, value]) => {
-              const percentage = (value / 5) * 100;
+              const percentage = Math.max(0, ((value - 1) / 6) * 100);
               return (
                 <div key={key}>
                   <div className="flex justify-between mb-1">
@@ -292,7 +282,7 @@ export default function ResultadosPage() {
                       {puntajeLabels[key as keyof typeof puntajeLabels]}
                     </span>
                     <span className="text-sm font-bold text-[#1098f7]">
-                      {value}/5
+                      {value.toFixed(1)}/7.0
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">

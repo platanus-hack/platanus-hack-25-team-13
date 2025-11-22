@@ -203,12 +203,11 @@ export default function AnamnesisPage() {
     // DEV: Go directly to feedback step with mockup data
     const mockFeedback = {
       puntajes: {
-        motivo_consulta: 4,
-        sintomas_relevantes: 3,
-        antecedentes: 2,
-        red_flags: 1,
-        razonamiento_clinico: 2,
-        comunicacion: 4,
+        anamnesis_motivo_consulta: 5.5,
+        identificacion_sintomas: 4.8,
+        antecedentes: 3.5,
+        razonamiento_clinico: 4.2,
+        comunicacion_empatia: 6.0,
       },
       comentarios: {
         fortalezas: [
