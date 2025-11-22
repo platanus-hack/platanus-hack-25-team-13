@@ -12,7 +12,7 @@ export default function SimuladorPage() {
   const [diagnosticoEstudiante, setDiagnosticoEstudiante] = useState("");
   const [showDiagnostico, setShowDiagnostico] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [especialidad, setEspecialidad] = useState<ClinicalCase["especialidad"]>("urgencia");
+  const [especialidad, setEspecialidad] = useState<ClinicalCase["especialidad"]>("aps");
   const [nivelDificultad, setNivelDificultad] = useState<ClinicalCase["nivel_dificultad"]>("medio");
   const router = useRouter();
 
@@ -100,23 +100,21 @@ export default function SimuladorPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Especialidad
+              Nivel de Atención
             </label>
             <select
               value={especialidad}
               onChange={(e) => setEspecialidad(e.target.value as ClinicalCase["especialidad"])}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
             >
-              <option value="urgencia">Urgencia</option>
-              <option value="medicina_interna">Medicina Interna</option>
-              <option value="respiratorio">Respiratorio</option>
-              <option value="digestivo">Digestivo</option>
-              <option value="aps">APS (con RAG) 🤖</option>
-              <option value="otro">Otro</option>
+              <option value="aps">🏥 APS (CESFAM) - con RAG 🤖</option>
+              <option value="urgencia">🚨 Urgencia (Servicio de Urgencias)</option>
+              <option value="hospitalizacion">🏨 Hospitalización (Medicina Interna)</option>
+              <option value="otro">🔧 Otro (Pediatría / Especialidades)</option>
             </select>
             {especialidad === "aps" && (
               <p className="text-xs text-green-600 mt-1">
-                ✨ Usando conocimiento médico de guías APS
+                ✨ Usando RAG con guías clínicas chilenas (PSCV, ERA, Salud Mental)
               </p>
             )}
           </div>
@@ -169,6 +167,14 @@ export default function SimuladorPage() {
                 <p><strong>Sexo:</strong> {clinicalCase.paciente.sexo}</p>
                 <p><strong>Ocupación:</strong> {clinicalCase.paciente.ocupacion}</p>
                 <p><strong>Contexto:</strong> {clinicalCase.paciente.contexto_ingreso}</p>
+                {clinicalCase.aps_subcategoria && (
+                  <p className="mt-2 pt-2 border-t border-gray-200">
+                    <strong>Foco APS:</strong> 
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                      {clinicalCase.aps_subcategoria}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
             

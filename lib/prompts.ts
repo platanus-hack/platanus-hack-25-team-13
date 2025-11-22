@@ -4,35 +4,93 @@ import type { ClinicalCase } from "@/types/case";
  * Prompts para la generación de casos clínicos
  */
 export const caseGenerationPrompts = {
-  system: (especialidad: string, nivelDificultad: string) => `
-Eres un médico especialista encargado de crear casos clínicos para estudiantes de pregrado en Chile.
+  system: (especialidad: string, nivelDificultad: string, apsSubcategoria?: string) => `
+Eres un médico experto en educación médica en Chile, especializado en crear casos clínicos por NIVEL DE ATENCIÓN.
 Debes generar un caso clínico REALISTA, coherente, y adecuado al nivel del estudiante.
 NO debes inventar enfermedades raras ni datos fisiológicamente imposibles.
 
-El caso debe ser de especialidad: ${especialidad}.
+El caso debe ser de nivel de atención: ${especialidad}.
 El nivel de dificultad debe ser: ${nivelDificultad}.
 
 ${especialidad === "aps" ? `
-IMPORTANTE: Este caso es de Atención Primaria de Salud (APS) - CESFAM.
+═══════════════════════════════════════════════════════════════
+NIVEL: APS (ATENCIÓN PRIMARIA DE SALUD - CESFAM)
+═══════════════════════════════════════════════════════════════
+
+CONTEXTO: Consultorio de atención primaria. El médico debe manejar ambulatoriamente,
+ingresar a programas según normativa, y derivar oportunamente cuando corresponda.
+
+${apsSubcategoria ? `
+FOCO ESPECÍFICO: ${apsSubcategoria.toUpperCase()}
+
+Genera un caso de APS enfocado en patología ${apsSubcategoria}:
+${apsSubcategoria === "cardiovascular" ? "- HTA, DM, dislipidemia, riesgo cardiovascular (PSCV 2017)" : ""}
+${apsSubcategoria === "respiratorio" ? "- EPOC, asma, IRA, tabaquismo (Guías Respiratorias)" : ""}
+${apsSubcategoria === "metabolico" ? "- Diabetes, obesidad, síndrome metabólico, tiroides" : ""}
+${apsSubcategoria === "salud_mental" ? "- Depresión, ansiedad, demencia, riesgo suicida (Guía Salud Mental)" : ""}
+${apsSubcategoria === "musculoesqueletico" ? "- Artrosis, lumbalgia, lesiones osteomusculares" : ""}
+
+Evita repetir patrones. Varía edad, sexo, severidad, presentación clínica y contexto social.
+` : ""}
 
 ENFOQUE DEL CASO:
-- El estudiante debe MANEJAR al paciente, no solo diagnosticar
-- Incluye criterios claros de DERIVACIÓN (ambulatoria o urgente)
-- Define qué se puede resolver en CESFAM vs qué requiere derivación
-- Incluye "red flags" que indican derivación urgente
+- ¿Puede manejarse ambulatoriamente en CESFAM?
+- ¿Cumple criterios de ingreso a programa? (PSCV, ERA, Salud Mental, PNI)
+- ¿Cuándo y dónde derivar? (ambulatoria vs urgente)
+- Metas terapéuticas según normativa
+- Educación y seguimiento obligatorio
+- Factores psicosociales modificadores
 
-USA LA INFORMACIÓN DE LOS DOCUMENTOS para:
-1. Establecer criterios de derivación específicos
-2. Definir manejo inicial en APS antes de derivar
-3. Incluir signos de alarma que requieren derivación inmediata
-4. Especificar a qué nivel derivar (especialista ambulatorio vs urgencia)
+USA LOS DOCUMENTOS para criterios de: ingreso a programas, derivación, metas terapéuticas, tiempos GES.
+` : ""}
 
-GENERA EL CASO pensando que el estudiante será evaluado en:
-- ¿Cuándo derivar? (timing)
-- ¿A dónde derivar? (nivel de atención)
-- ¿Qué hacer mientras tanto? (manejo inicial)
-- ¿Cuándo es urgente? (criterios de alarma)
-` : ''}
+${especialidad === "urgencia" ? `
+═══════════════════════════════════════════════════════════════
+NIVEL: URGENCIA (SERVICIO DE URGENCIAS)
+═══════════════════════════════════════════════════════════════
+
+CONTEXTO: Servicio de urgencias hospitalario. El médico debe aplicar TRIAGE,
+estabilizar al paciente, y decidir: alta, observación, hospitalización o derivación.
+
+ENFOQUE DEL CASO:
+- Clasificación de TRIAGE (C1/C2/C3/C4/C5)
+- Estabilización inicial (ABC, manejo agudo)
+- Identificación de patología tiempo-crítica (ACV, IAM, TEP, etc.)
+- Criterios de hospitalización vs alta con seguimiento
+- Tiempos GES si aplica (Neumonía 65+, IAM, ACV)
+
+El estudiante será evaluado en:
+- ¿Clasificó correctamente la urgencia?
+- ¿Realizó manejo inicial apropiado?
+- ¿Identificó patología tiempo-crítica?
+- ¿Decidió correctamente hospitalizar/alta/observación?
+
+Genera casos que requieran DECISIÓN URGENTE, no solo diagnóstico.
+` : ""}
+
+${especialidad === "hospitalizacion" ? `
+═══════════════════════════════════════════════════════════════
+NIVEL: HOSPITALIZACIÓN (MEDICINA INTERNA)
+═══════════════════════════════════════════════════════════════
+
+CONTEXTO: Paciente hospitalizado en servicio de medicina interna.
+El médico debe manejar tratamiento intrahospitalario, complicaciones, y planificar alta.
+
+ENFOQUE DEL CASO:
+- Manejo intrahospitalario de patología aguda o descompensada
+- Manejo de comorbilidades y complicaciones
+- Criterios de alta hospitalaria
+- Plan post-alta y seguimiento ambulatorio
+- Educación al alta
+
+El estudiante será evaluado en:
+- ¿Planteó manejo intrahospitalario adecuado?
+- ¿Identificó y manejó complicaciones?
+- ¿Definió criterios de alta apropiados?
+- ¿Organizó seguimiento post-alta?
+
+Genera casos de manejo hospitalario complejo, no urgencias iniciales.
+` : ""}
 
 Devuelve SOLO un objeto JSON que siga estrictamente el esquema que te doy más abajo.
 No incluyas comentarios, texto extra ni explicaciones.
@@ -43,7 +101,8 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
 
 {
   "id": "string",
-  "especialidad": "medicina_interna|urgencia|respiratorio|digestivo|aps|otro",
+  "especialidad": "aps|urgencia|hospitalizacion|otro",
+  "aps_subcategoria": "cardiovascular|respiratorio|metabolico|salud_mental|musculoesqueletico|general (solo si especialidad=aps)",
   "nivel_dificultad": "facil|medio|dificil",
   "paciente": {
     "edad": 60,

@@ -1,6 +1,7 @@
 export interface ClinicalCase {
   id: string;
-  especialidad: "medicina_interna" | "urgencia" | "respiratorio" | "digestivo" | "aps" | "otro";
+  especialidad: "aps" | "urgencia" | "hospitalizacion" | "otro";
+  aps_subcategoria?: "cardiovascular" | "respiratorio" | "metabolico" | "salud_mental" | "musculoesqueletico" | "general";
   nivel_dificultad: "facil" | "medio" | "dificil";
   paciente: {
     edad: number;

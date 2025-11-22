@@ -36,20 +36,23 @@ export async function initializeAssistant() {
     
     console.log(`Encontrados ${pdfFiles.length} archivos PDF:`, pdfFiles);
 
-    // 2. Subir TODOS los PDFs a OpenAI
-    const uploadedFileIds: string[] = [];
-    for (const pdfFile of pdfFiles) {
+    // 2. Subir TODOS los PDFs a OpenAI en paralelo
+    console.log("Subiendo archivos en paralelo...");
+    const uploadPromises = pdfFiles.map(async (pdfFile) => {
       const pdfPath = path.join(knowledgeDir, pdfFile);
-      console.log("Subiendo archivo:", pdfFile);
-      
       const fileStream = fs.createReadStream(pdfPath);
+      
       const uploadedFile = await openai.files.create({
         file: fileStream,
         purpose: "assistants",
       });
-      uploadedFileIds.push(uploadedFile.id);
+      
       console.log(`✓ ${pdfFile} subido:`, uploadedFile.id);
-    }
+      return uploadedFile.id;
+    });
+
+    const uploadedFileIds = await Promise.all(uploadPromises);
+    console.log(`✓ Todos los archivos subidos (${uploadedFileIds.length})`);
 
     // 3. Crear el Assistant con File Search habilitado y TODOS los archivos
     const assistant = await openai.beta.assistants.create({

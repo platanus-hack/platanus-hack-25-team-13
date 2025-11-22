@@ -17,7 +17,17 @@ export async function POST(req: Request) {
 
     // Si es APS, usar Assistant API con RAG
     if (especialidad === "aps") {
-      const prompt = `${caseGenerationPrompts.system(especialidad, nivel_dificultad)}
+      // Seleccionar subcategoría aleatoria
+      const apsSubcategorias = [
+        "cardiovascular",
+        "respiratorio",
+        "metabolico",
+        "salud_mental",
+        "musculoesqueletico",
+      ];
+      const subcategoria = apsSubcategorias[Math.floor(Math.random() * apsSubcategorias.length)];
+      
+      const prompt = `${caseGenerationPrompts.system(especialidad, nivel_dificultad, subcategoria)}
 
 ${caseGenerationPrompts.user()}`;
 
@@ -43,6 +53,9 @@ ${caseGenerationPrompts.user()}`;
       if (!clinicalCase.id) {
         clinicalCase.id = `case-aps-${Date.now()}`;
       }
+      
+      // Añadir subcategoría al caso
+      clinicalCase.aps_subcategoria = subcategoria as any;
 
       return NextResponse.json(clinicalCase, { status: 200 });
     }
@@ -53,7 +66,7 @@ ${caseGenerationPrompts.user()}`;
       messages: [
         { 
           role: "system", 
-          content: caseGenerationPrompts.system(especialidad, nivel_dificultad) 
+          content: caseGenerationPrompts.system(especialidad, nivel_dificultad, undefined) 
         },
         { 
           role: "user", 
@@ -61,7 +74,7 @@ ${caseGenerationPrompts.user()}`;
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
+      temperature: 0.85,
     });
 
     const output = response.choices[0].message.content;
