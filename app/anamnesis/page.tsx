@@ -75,7 +75,7 @@ export default function AnamnesisPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
-      <div className="flex-1 flex flex-col items-center pt-8 pb-32 p-4">
+      <div className="flex-1 flex flex-col items-center pt-20 pb-32 p-4">
         {currentStep === 0 && (
           <>
             <AntecedentesMedicos

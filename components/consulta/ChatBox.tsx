@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { FaUser } from "react-icons/fa";
 import type { ClinicalCase, ChatMessage } from "@/types/case";
 
 interface ChatBoxProps {
@@ -73,9 +74,16 @@ export default function ChatBox({ clinicalCase, onMessagesChange }: ChatBoxProps
     }
   }
 
+  const hasMessages = messages.length > 1 || (messages.length === 1 && messages[0].role === "user");
+
   return (
     <div className="flex flex-col h-full border rounded-lg">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative">
+        {!hasMessages && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <FaUser className="w-32 h-32 text-[#1098f7] opacity-30" />
+          </div>
+        )}
         {messages.map((msg, idx) => (
           <div
             key={idx}
