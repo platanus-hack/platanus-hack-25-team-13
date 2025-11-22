@@ -20,6 +20,8 @@ export default function AnamnesisPage() {
   const [loading, setLoading] = useState(false);
   const [pacienteData, setPacienteData] = useState<any>(null);
   const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);
+  const [initialMessage, setInitialMessage] = useState<string | null>(null);
+  const [simulationId, setSimulationId] = useState<string | null>(null);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -32,6 +34,16 @@ export default function AnamnesisPage() {
         const patientInfo = parsedCase.patientInfo;
 
         if (clinicalCaseData && patientInfo) {
+          // Guardar simulationId
+          if (parsedCase.simulationId) {
+            setSimulationId(parsedCase.simulationId);
+          }
+
+          // Guardar initialMessage
+          if (parsedCase.initialMessage) {
+            setInitialMessage(parsedCase.initialMessage);
+          }
+
           // Capitalizar sexo
           const sexoCapitalizado = patientInfo.sexo.charAt(0).toUpperCase() + patientInfo.sexo.slice(1);
           
@@ -152,8 +164,7 @@ export default function AnamnesisPage() {
 
   const steps = [
     { title: "Antecedentes" },
-    { title: "Consulta" },
-    { title: "Diagnóstico" },
+    { title: "Consulta y Diagnostico" },
     { title: "Finalizar" },
   ];
 
@@ -161,12 +172,15 @@ export default function AnamnesisPage() {
     setCurrentStep(1);
     setMessages([]);
     setTimeout(() => {
+      const firstMessage = initialMessage || 
+        (finalClinicalCase.motivo_consulta 
+          ? finalClinicalCase.motivo_consulta
+          : "Hola");
+      
       setMessages([
         {
           role: "assistant",
-          content: finalClinicalCase.motivo_consulta 
-            ? `Hola doctor/a, ${finalClinicalCase.motivo_consulta}`
-            : "Hola doctor/a, ¿en qué puedo ayudarle?",
+          content: firstMessage,
           timestamp: new Date(),
         },
       ]);
@@ -185,9 +199,13 @@ export default function AnamnesisPage() {
   // }, [currentStep]);
 
   async function handleSend() {
-    // Esta página es solo una demostración con datos de ejemplo.
-    // Para usar el sistema completo con engine inteligente, usa /simulador
     if (!input.trim() || loading) return;
+
+    // Solo usar engine si tenemos simulationId
+    if (!simulationId) {
+      console.error("No simulationId available");
+      return;
+    }
 
     const userMessage: ChatMessage = {
       role: "user",
@@ -196,19 +214,49 @@ export default function AnamnesisPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageContent = input;
     setInput("");
     setLoading(true);
 
-    // Simulación simple para demo (sin engine)
-    setTimeout(() => {
-      const assistantMessage: ChatMessage = {
+    try {
+      const response = await fetch("/api/engine", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          simulationId,
+          message: messageContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data.response) {
+        const assistantMessage: ChatMessage = {
+          role: "assistant",
+          content: data.data.response,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        throw new Error(data.error || "No response from engine");
+      }
+    } catch (error) {
+      console.error("Error sending message to engine:", error);
+      const errorMessage: ChatMessage = {
         role: "assistant",
-        content: "Esta es una página de demostración. Para usar el sistema completo con engine inteligente, por favor usa la página /simulador que incluye el sistema de simulación con RAG y feedback automático.",
+        content: "Lo siento, hubo un error al procesar tu mensaje. Por favor intenta de nuevo.",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -247,7 +295,7 @@ export default function AnamnesisPage() {
             <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
                 <ChatAvatar 
-                  step={currentStep} 
+                  step={1} 
                   loading={loading}
                   lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
                     ? (messages[messages.length - 1].role as "user" | "assistant")
@@ -262,26 +310,6 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 2 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] mt-4">
-            <div className="w-[30%] flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                <ChatAvatar 
-                  step={currentStep} 
-                  loading={loading}
-                  expression="diagnostico"
-                  lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
-                    ? messages[messages.length - 1].role as "user" | "assistant"
-                    : undefined}
-                />
-              </div>
-            </div>
-            <div className="w-[70%]">
-              <Diagnostico clinicalCase={finalClinicalCase} messages={messages} loading={loading} input={input} onInputChange={setInput} onSend={handleSend} loadingInput={loading} />
-            </div>
-          </div>
-        )}
-        
-        {currentStep === 3 && (
           <div className="w-full max-w-5xl">
             <Feedback clinicalCase={finalClinicalCase} />
           </div>
