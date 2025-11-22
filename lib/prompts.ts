@@ -4,13 +4,93 @@ import type { ClinicalCase } from "@/types/case";
  * Prompts para la generación de casos clínicos
  */
 export const caseGenerationPrompts = {
-  system: (especialidad: string, nivelDificultad: string) => `
-Eres un médico especialista encargado de crear casos clínicos para estudiantes de pregrado en Chile.
+  system: (especialidad: string, nivelDificultad: string, apsSubcategoria?: string) => `
+Eres un médico experto en educación médica en Chile, especializado en crear casos clínicos por NIVEL DE ATENCIÓN.
 Debes generar un caso clínico REALISTA, coherente, y adecuado al nivel del estudiante.
 NO debes inventar enfermedades raras ni datos fisiológicamente imposibles.
 
-El caso debe ser de especialidad: ${especialidad}.
+El caso debe ser de nivel de atención: ${especialidad}.
 El nivel de dificultad debe ser: ${nivelDificultad}.
+
+${especialidad === "aps" ? `
+═══════════════════════════════════════════════════════════════
+NIVEL: APS (ATENCIÓN PRIMARIA DE SALUD - CESFAM)
+═══════════════════════════════════════════════════════════════
+
+CONTEXTO: Consultorio de atención primaria. El médico debe manejar ambulatoriamente,
+ingresar a programas según normativa, y derivar oportunamente cuando corresponda.
+
+${apsSubcategoria ? `
+FOCO ESPECÍFICO: ${apsSubcategoria.toUpperCase()}
+
+Genera un caso de APS enfocado en patología ${apsSubcategoria}:
+${apsSubcategoria === "cardiovascular" ? "- HTA, DM, dislipidemia, riesgo cardiovascular (PSCV 2017)" : ""}
+${apsSubcategoria === "respiratorio" ? "- EPOC, asma, IRA, tabaquismo (Guías Respiratorias)" : ""}
+${apsSubcategoria === "metabolico" ? "- Diabetes, obesidad, síndrome metabólico, tiroides" : ""}
+${apsSubcategoria === "salud_mental" ? "- Depresión, ansiedad, demencia, riesgo suicida (Guía Salud Mental)" : ""}
+${apsSubcategoria === "musculoesqueletico" ? "- Artrosis, lumbalgia, lesiones osteomusculares" : ""}
+
+Evita repetir patrones. Varía edad, sexo, severidad, presentación clínica y contexto social.
+` : ""}
+
+ENFOQUE DEL CASO:
+- ¿Puede manejarse ambulatoriamente en CESFAM?
+- ¿Cumple criterios de ingreso a programa? (PSCV, ERA, Salud Mental, PNI)
+- ¿Cuándo y dónde derivar? (ambulatoria vs urgente)
+- Metas terapéuticas según normativa
+- Educación y seguimiento obligatorio
+- Factores psicosociales modificadores
+
+USA LOS DOCUMENTOS para criterios de: ingreso a programas, derivación, metas terapéuticas, tiempos GES.
+` : ""}
+
+${especialidad === "urgencia" ? `
+═══════════════════════════════════════════════════════════════
+NIVEL: URGENCIA (SERVICIO DE URGENCIAS)
+═══════════════════════════════════════════════════════════════
+
+CONTEXTO: Servicio de urgencias hospitalario. El médico debe aplicar TRIAGE,
+estabilizar al paciente, y decidir: alta, observación, hospitalización o derivación.
+
+ENFOQUE DEL CASO:
+- Clasificación de TRIAGE (C1/C2/C3/C4/C5)
+- Estabilización inicial (ABC, manejo agudo)
+- Identificación de patología tiempo-crítica (ACV, IAM, TEP, etc.)
+- Criterios de hospitalización vs alta con seguimiento
+- Tiempos GES si aplica (Neumonía 65+, IAM, ACV)
+
+El estudiante será evaluado en:
+- ¿Clasificó correctamente la urgencia?
+- ¿Realizó manejo inicial apropiado?
+- ¿Identificó patología tiempo-crítica?
+- ¿Decidió correctamente hospitalizar/alta/observación?
+
+Genera casos que requieran DECISIÓN URGENTE, no solo diagnóstico.
+` : ""}
+
+${especialidad === "hospitalizacion" ? `
+═══════════════════════════════════════════════════════════════
+NIVEL: HOSPITALIZACIÓN (MEDICINA INTERNA)
+═══════════════════════════════════════════════════════════════
+
+CONTEXTO: Paciente hospitalizado en servicio de medicina interna.
+El médico debe manejar tratamiento intrahospitalario, complicaciones, y planificar alta.
+
+ENFOQUE DEL CASO:
+- Manejo intrahospitalario de patología aguda o descompensada
+- Manejo de comorbilidades y complicaciones
+- Criterios de alta hospitalaria
+- Plan post-alta y seguimiento ambulatorio
+- Educación al alta
+
+El estudiante será evaluado en:
+- ¿Planteó manejo intrahospitalario adecuado?
+- ¿Identificó y manejó complicaciones?
+- ¿Definió criterios de alta apropiados?
+- ¿Organizó seguimiento post-alta?
+
+Genera casos de manejo hospitalario complejo, no urgencias iniciales.
+` : ""}
 
 Devuelve SOLO un objeto JSON que siga estrictamente el esquema que te doy más abajo.
 No incluyas comentarios, texto extra ni explicaciones.
@@ -21,7 +101,8 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
 
 {
   "id": "string",
-  "especialidad": "medicina_interna|urgencia|respiratorio|digestivo|otro",
+  "especialidad": "aps|urgencia|hospitalizacion|otro",
+  "aps_subcategoria": "cardiovascular|respiratorio|metabolico|salud_mental|musculoesqueletico|general (solo si especialidad=aps)",
   "nivel_dificultad": "facil|medio|dificil",
   "paciente": {
     "edad": 60,
@@ -73,8 +154,58 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
   ],
   "info_prohibida": [
     "Datos que nunca debe decir el paciente explícitamente"
-  ]
+  ],
+  "manejo_aps": {
+    "criterio_ingreso_programa": {
+      "aplica": true,
+      "programa": "PSCV|ERA|Salud_Mental|No_aplica",
+      "justificacion": "Motivo por el cual debe ingresar según normativas chilenas"
+    },
+    "metas_terapeuticas": [
+      "Meta o indicador objetivo con cifra según guía (ej: PA <140/90 mmHg)"
+    ],
+    "manejo_inicial": [
+      "Acciones terapéuticas, educativas y de monitoreo permitidas en CESFAM"
+    ],
+    "tiempos_legales_y_oportunidad": {
+      "es_ges": true,
+      "tiempos_requeridos": [
+        "Ej: Confirmación diagnóstica en < 20 días, inicio tratamiento < 30 días"
+      ]
+    },
+    "derivacion": {
+      "requiere_derivacion": true,
+      "tipo_derivacion": "ambulatoria_especialista|urgencia|hospitalizacion|no_requiere",
+      "criterios": [
+        "Criterios claros según guía nacional que indican derivación"
+      ],
+      "red_flags": [
+        "Signos de alarma que implican derivación inmediata a urgencia"
+      ]
+    },
+    "seguimiento": {
+      "frecuencia": "Ej: control en 7 días, semanal hasta compensación",
+      "duracion": "Ej: hasta lograr compensación o estabilidad",
+      "educacion_obligatoria": [
+        "Temas de educación requeridos por normativa (dieta, ejercicio, adherencia, etc.)"
+      ]
+    },
+    "factores_psicosociales_modificadores": [
+      "Factores que modifican el manejo: vive solo, ideación suicida, abandono, sin cuidador, riesgo social"
+    ]
+  }
 }
+
+IMPORTANTE para casos de APS:
+- El campo "manejo_aps" es OBLIGATORIO para casos de especialidad "aps"
+- Usa la información de los documentos para llenar:
+  * Criterios de ingreso a programas (PSCV, ERA, Salud Mental)
+  * Metas terapéuticas específicas según normativa
+  * Tiempos GES si aplica
+  * Criterios de derivación reales según guías nacionales
+  * Red flags específicos y basados en guías clínicas
+  * Educación obligatoria según programa
+  * Factores psicosociales que modifican el plan (soledad, cuidador, riesgo)
 
 Respeta nombres de campos y tipos. 
 No generes valores extremos o imposibles.
@@ -154,6 +285,25 @@ CRITERIOS A EVALUAR (puntaje 1 a 5):
 4. Detección de "red flags"
 5. Claridad y orden del razonamiento clínico
 6. Comunicación y trato con el paciente
+${clinicalCase.especialidad === "aps" ? "7. Manejo y decisiones de derivación (APS)" : ""}
+
+${clinicalCase.especialidad === "aps" && clinicalCase.manejo_aps ? `
+EVALUACIÓN ESPECÍFICA PARA APS:
+Además de los criterios generales, evalúa:
+- ¿Identificó correctamente la necesidad de derivación?
+- ¿Propuso el tipo de derivación adecuado? (ambulatoria vs urgente)
+- ¿Reconoció los red flags de derivación urgente?
+- ¿Planteó manejo inicial apropiado en CESFAM?
+- ¿Consideró ingreso a programa si aplica?
+- ¿Definió metas terapéuticas claras?
+- ¿Propuso educación y seguimiento adecuados?
+
+Caso requiere derivación: ${clinicalCase.manejo_aps.derivacion.requiere_derivacion}
+Tipo de derivación correcto: ${clinicalCase.manejo_aps.derivacion.tipo_derivacion}
+Criterios de derivación: ${JSON.stringify(clinicalCase.manejo_aps.derivacion.criterios)}
+Red flags urgentes: ${JSON.stringify(clinicalCase.manejo_aps.derivacion.red_flags)}
+Aplica a programa: ${clinicalCase.manejo_aps.criterio_ingreso_programa.aplica} - ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}
+` : ""}
 
 COMPARACIÓN DIAGNÓSTICA:
 - Compara el diagnóstico del estudiante con el diagnóstico real:
@@ -170,6 +320,7 @@ FORMATO DE RESPUESTA (OBLIGATORIO, JSON ESTRICTO):
     "red_flags": number,
     "razonamiento_clinico": number,
     "comunicacion": number
+    ${clinicalCase.especialidad === "aps" ? ',"manejo_derivacion": number' : ""}
   },
   "comentarios": {
     "fortalezas": string[],
@@ -182,6 +333,17 @@ FORMATO DE RESPUESTA (OBLIGATORIO, JSON ESTRICTO):
     "diagnostico_real": string,
     "comentario": string
   }
+  ${clinicalCase.especialidad === "aps" ? `,"manejo": {
+    "derivacion_correcta": boolean,
+    "tipo_derivacion_adecuado": boolean,
+    "identifico_red_flags": boolean,
+    "manejo_inicial_apropiado": boolean,
+    "considero_ingreso_programa": boolean,
+    "metas_terapeuticas_definidas": boolean,
+    "educacion_y_seguimiento_apropiados": boolean,
+    "considero_factores_psicosociales": boolean,
+    "comentario": string
+  }` : ""}
 }
 
 NO incluyas explicaciones fuera del JSON.

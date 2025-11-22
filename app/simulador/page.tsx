@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClinicalCase, ChatMessage } from "@/types/case";
-import ChatBox from "../../components/anamnesis/ChatBox";
+import ChatBox from "@/components/ChatBox";
 
 export default function SimuladorPage() {
   const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);
@@ -12,6 +12,8 @@ export default function SimuladorPage() {
   const [diagnosticoEstudiante, setDiagnosticoEstudiante] = useState("");
   const [showDiagnostico, setShowDiagnostico] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [especialidad, setEspecialidad] = useState<ClinicalCase["especialidad"]>("aps");
+  const [nivelDificultad, setNivelDificultad] = useState<ClinicalCase["nivel_dificultad"]>("medio");
   const router = useRouter();
 
   async function handleGenerateCase() {
@@ -24,8 +26,8 @@ export default function SimuladorPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          especialidad: "urgencia",
-          nivel_dificultad: "medio",
+          especialidad,
+          nivel_dificultad: nivelDificultad,
         }),
       });
       if (!res.ok) throw new Error("Error en la API");
@@ -90,6 +92,50 @@ export default function SimuladorPage() {
         Simulador de Casos Clínicos
       </h1>
 
+      <div className="mb-6 p-4 bg-white rounded-lg border border-[#1098f7] border-opacity-20 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4 text-[#001c55]">
+          Configuración del Caso
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nivel de Atención
+            </label>
+            <select
+              value={especialidad}
+              onChange={(e) => setEspecialidad(e.target.value as ClinicalCase["especialidad"])}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
+            >
+              <option value="aps">🏥 APS (CESFAM) - con RAG 🤖</option>
+              <option value="urgencia">🚨 Urgencia (Servicio de Urgencias)</option>
+              <option value="hospitalizacion">🏨 Hospitalización (Medicina Interna)</option>
+              <option value="otro">🔧 Otro (Pediatría / Especialidades)</option>
+            </select>
+            {especialidad === "aps" && (
+              <p className="text-xs text-green-600 mt-1">
+                ✨ Usando RAG con guías clínicas chilenas (PSCV, ERA, Salud Mental)
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nivel de Dificultad
+            </label>
+            <select
+              value={nivelDificultad}
+              onChange={(e) => setNivelDificultad(e.target.value as ClinicalCase["nivel_dificultad"])}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
+            >
+              <option value="facil">Fácil</option>
+              <option value="medio">Medio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <button
         onClick={handleGenerateCase}
         disabled={loading}
@@ -121,6 +167,14 @@ export default function SimuladorPage() {
                 <p><strong>Sexo:</strong> {clinicalCase.paciente.sexo}</p>
                 <p><strong>Ocupación:</strong> {clinicalCase.paciente.ocupacion}</p>
                 <p><strong>Contexto:</strong> {clinicalCase.paciente.contexto_ingreso}</p>
+                {clinicalCase.aps_subcategoria && (
+                  <p className="mt-2 pt-2 border-t border-gray-200">
+                    <strong>Foco APS:</strong> 
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                      {clinicalCase.aps_subcategoria}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
             

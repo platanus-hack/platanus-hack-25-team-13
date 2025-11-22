@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { ClinicalCase } from "@/types/case";
 import { caseGenerationPrompts } from "@/lib/prompts";
+import { generateCaseWithRAG } from "@/lib/assistant";
 
 export async function POST(req: Request) {
   try {
@@ -14,12 +15,58 @@ export async function POST(req: Request) {
       nivel_dificultad?: ClinicalCase["nivel_dificultad"];
     };
 
+    // Si es APS, usar Assistant API con RAG
+    if (especialidad === "aps") {
+      // Seleccionar subcategoría aleatoria
+      const apsSubcategorias = [
+        "cardiovascular",
+        "respiratorio",
+        "metabolico",
+        "salud_mental",
+        "musculoesqueletico",
+      ];
+      const subcategoria = apsSubcategorias[Math.floor(Math.random() * apsSubcategorias.length)];
+      
+      const prompt = `${caseGenerationPrompts.system(especialidad, nivel_dificultad, subcategoria)}
+
+${caseGenerationPrompts.user()}`;
+
+      const output = await generateCaseWithRAG(
+        especialidad,
+        nivel_dificultad,
+        prompt
+      );
+
+      if (!output) {
+        throw new Error("No se recibió respuesta del modelo");
+      }
+
+      // Extraer el JSON de la respuesta (puede venir con texto adicional)
+      const jsonMatch = output.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : output;
+      
+      const clinicalCase = JSON.parse(jsonString) as ClinicalCase;
+      if (!clinicalCase.paciente || !clinicalCase.motivo_consulta) {
+        throw new Error("Caso incompleto");
+      }
+
+      if (!clinicalCase.id) {
+        clinicalCase.id = `case-aps-${Date.now()}`;
+      }
+      
+      // Añadir subcategoría al caso
+      clinicalCase.aps_subcategoria = subcategoria as any;
+
+      return NextResponse.json(clinicalCase, { status: 200 });
+    }
+
+    // Para otras especialidades, usar el método tradicional
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1",
       messages: [
         { 
           role: "system", 
-          content: caseGenerationPrompts.system(especialidad, nivel_dificultad) 
+          content: caseGenerationPrompts.system(especialidad, nivel_dificultad, undefined) 
         },
         { 
           role: "user", 
@@ -27,7 +74,7 @@ export async function POST(req: Request) {
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
+      temperature: 0.85,
     });
 
     const output = response.choices[0].message.content;

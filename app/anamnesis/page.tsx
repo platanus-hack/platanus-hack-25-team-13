@@ -177,6 +177,7 @@ export default function AnamnesisPage() {
       <div className="fixed top-20 left-0 right-0 z-10 flex justify-center pt-2 pb-2">
         <div className="w-full max-w-2xl px-4">
           <Stepper steps={steps} currentStep={currentStep} />
+
         </div>
       </div>
       
