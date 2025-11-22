@@ -29,7 +29,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff]`}
       >
         <Header />
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1">
           {children}
         </div>
       </body>

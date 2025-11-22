@@ -188,16 +188,55 @@ export default function AnamnesisPage() {
     }, 2000);
   };
 
-  // useEffect(() => {
-  //   if (typeof window !== 'undefined') {
-  //     (window as unknown).__DEV_NEXT_STEP = handleNextStep;
-  //   }
-  //   return () => {
-  //     if (typeof window !== 'undefined') {
-  //       delete (window as unknown).__DEV_NEXT_STEP;
-  //     }
-  //   };
-  // }, [currentStep]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__DEV_NEXT_STEP = handleDevNext;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__DEV_NEXT_STEP;
+      }
+    };
+  }, [finalClinicalCase]);
+
+  const handleDevNext = () => {
+    // DEV: Go directly to feedback step with mockup data
+    const mockFeedback = {
+      puntajes: {
+        motivo_consulta: 4,
+        sintomas_relevantes: 3,
+        antecedentes: 2,
+        red_flags: 1,
+        razonamiento_clinico: 2,
+        comunicacion: 4,
+      },
+      comentarios: {
+        fortalezas: [
+          "El estudiante mostró una buena habilidad para establecer comunicación inicial con el paciente.",
+          "Fue capaz de explorar adecuadamente el motivo de consulta del paciente.",
+        ],
+        debilidades: [
+          "El estudiante no exploró adecuadamente los antecedentes personales y familiares del paciente.",
+          "No identificó las red flags importantes para el caso.",
+          "El razonamiento clínico fue incorrecto, llevando a un diagnóstico erróneo.",
+        ],
+        sugerencias: [
+          "Asegurarse de preguntar sobre antecedentes familiares y personales relevantes en casos respiratorios.",
+          "Mejorar la identificación de signos de alarma que podrían requerir atención urgente.",
+          "Revisar criterios de diagnóstico diferencial para afecciones respiratorias comunes en adultos mayores con antecedentes de tabaquismo.",
+        ],
+      },
+      diagnostico: {
+        estudiante: "infección pulmonar",
+        correcto: false,
+        diagnostico_real: finalClinicalCase.diagnostico_principal || "EPOC exacerbado",
+        comentario: "El diagnóstico del estudiante fue incorrecto. No consideró el historial de tabaquismo y los síntomas característicos de EPOC exacerbado.",
+      },
+    };
+    
+    setFeedbackData(mockFeedback);
+    setCurrentStep(2);
+  };
 
   async function handleSend() {
     if (!input.trim() || loading) return;
@@ -269,7 +308,7 @@ export default function AnamnesisPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
+    <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
       <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
         <div className="w-full max-w-3xl">
           <Stepper steps={steps} currentStep={currentStep} />
@@ -300,7 +339,7 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 1 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] mt-20">
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] ">
             <div className="w-[30%] flex-shrink-0">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
                 <ChatAvatar 
