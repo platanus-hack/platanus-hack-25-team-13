@@ -1,7 +1,6 @@
 import { FaUser } from "react-icons/fa";
 
 interface AntecedentesMedicosProps {
-  nombre: string;
   edad: number;
   sexo: string;
   ocupacion: string;
@@ -10,7 +9,6 @@ interface AntecedentesMedicosProps {
 }
 
 export default function AntecedentesMedicos({
-  nombre,
   edad,
   sexo,
   ocupacion,
@@ -25,13 +23,6 @@ export default function AntecedentesMedicos({
 
       <div className="flex gap-2 mb-4 items-center">
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-[#001c55] uppercase tracking-wide">
-              Nombre completo
-            </label>
-            <p className="text-sm text-[#00072d]">{nombre}</p>
-          </div>
-
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[#001c55] uppercase tracking-wide">
               Edad

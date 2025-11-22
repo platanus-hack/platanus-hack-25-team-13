@@ -319,7 +319,6 @@ export default function AnamnesisPage() {
         {currentStep === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[60vh] mt-4">
             <AntecedentesMedicos
-              nombre={finalPacienteData.nombre}
               edad={finalPacienteData.edad}
               sexo={finalPacienteData.sexo}
               ocupacion={finalPacienteData.ocupacion}
