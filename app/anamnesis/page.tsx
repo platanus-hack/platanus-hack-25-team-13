@@ -77,13 +77,16 @@ export default function AnamnesisPage() {
 
   const handleStartConsulta = () => {
     setCurrentStep(1);
-    setMessages([
-      {
-        role: "assistant",
-        content: `Hola doctor/a, ${clinicalCase.motivo_consulta}`,
-        timestamp: new Date(),
-      },
-    ]);
+    setMessages([]);
+    setTimeout(() => {
+      setMessages([
+        {
+          role: "assistant",
+          content: `Hola doctor/a, ${clinicalCase.motivo_consulta}`,
+          timestamp: new Date(),
+        },
+      ]);
+    }, 2000);
   };
 
   async function handleSend() {
@@ -138,7 +141,7 @@ export default function AnamnesisPage() {
       
       <div className="flex-1 flex flex-col items-center pt-40 pb-4 p-4">
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] -mt-8">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] -mt-12">
             <AntecedentesMedicos
               nombre={pacienteData.nombre}
               edad={pacienteData.edad}
