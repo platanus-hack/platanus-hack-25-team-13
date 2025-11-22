@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar } from "react-icons/fa";
+import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar, FaExternalLinkAlt } from "react-icons/fa";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { ClinicalCase } from "@/types/case";
 
@@ -207,6 +207,17 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
     router.push('/');
   };
 
+  const getStudyResourceLink = (tema: string) => {
+    // Generar enlace de búsqueda en PubMed/Google Scholar
+    const query = encodeURIComponent(`${tema} medicina`);
+    return `https://scholar.google.com/scholar?q=${query}`;
+  };
+
+  const handleStudyResource = (tema: string) => {
+    const link = getStudyResourceLink(tema);
+    window.open(link, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-6 h-[99vh] overflow-y-auto">
       {/* Header */}
@@ -218,7 +229,7 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
             <FaTimesCircle className="text-red-500 text-lg flex-shrink-0" />
           )}
           <h2 className="text-lg font-bold text-gray-900">
-            Feedback Simulación: {finalDiagnosis}
+            Calificación final: Diagnostico {finalDiagnosis}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -293,19 +304,34 @@ ${feedbackData.queRepasar.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 
       {/* Qué Repasar - Full Width */}
       <div className="mt-4">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-3">
           <FaBook className="text-purple-500 text-base flex-shrink-0" />
           <h3 className="text-base font-semibold text-gray-900">Qué Repasar</h3>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <ul className="space-y-1.5">
+        <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 rounded-lg p-5 border-2 border-purple-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {feedbackData.queRepasar.map((tema, idx) => (
-              <li key={idx} className="text-gray-700 text-sm flex items-start gap-2">
-                <span className="text-purple-500 mt-1 flex-shrink-0">•</span>
-                <span>{tema}</span>
-              </li>
+              <div
+                key={idx}
+                className="bg-white rounded-lg p-3 border border-purple-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-3"
+              >
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="flex-shrink-0 w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-purple-600 font-bold text-xs">{idx + 1}</span>
+                  </div>
+                  <span className="text-gray-800 text-sm font-medium flex-1">{tema}</span>
+                </div>
+                <button
+                  onClick={() => handleStudyResource(tema)}
+                  className="flex-shrink-0 bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg transition-colors duration-200 flex items-center gap-1.5 text-xs font-medium"
+                  title={`Estudiar: ${tema}`}
+                >
+                  <FaExternalLinkAlt className="w-3 h-3" />
+                  <span className="hidden sm:inline">Estudiar</span>
+                </button>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </div>
     </div>
