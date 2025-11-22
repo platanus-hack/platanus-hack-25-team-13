@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FaDownload, FaExclamationTriangle, FaTimesCircle, FaBook, FaCheckCircle, FaShare, FaCheck, FaStar, FaChartLine } from "react-icons/fa";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { ClinicalCase } from "@/types/case";
+import jsPDF from "jspdf";
 
 interface FeedbackProps {
   clinicalCase: ClinicalCase;
@@ -137,42 +138,192 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
   const isPassed = notaPromedio >= 3.0;
 
   const handleDownload = () => {
-    const informe = `
-INFORME DE FEEDBACK - SIMULACIÓN CLÍNICA
-=========================================
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let yPosition = margin;
 
-NOTA PROMEDIO: ${notaPromedio.toFixed(1)}/5.0
+    // Colors - more subtle
+    const lightGray = [240, 240, 240];
+    const darkGray = [100, 100, 100];
+    const primaryColor = [16, 152, 247]; // Just for subtle accents
 
-PUNTAJES POR CRITERIO:
-${Object.entries(puntajes).map(([key, value]) => 
-  `  ${puntajeLabels[key] || key}: ${value}/5`
-).join('\n')}
+    // Header - simple line
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("INFORME DE FEEDBACK - SIMULACIÓN CLÍNICA", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 6;
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    const fecha = new Date().toLocaleDateString("es-ES", { 
+      year: "numeric", 
+      month: "long", 
+      day: "numeric" 
+    });
+    doc.text(fecha, pageWidth / 2, yPosition, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    yPosition += 10;
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 8;
 
-DIAGNÓSTICO:
-  Tu diagnóstico: ${diagnosticoEstudiante}
-  Diagnóstico correcto: ${diagnosticoReal}
-  Correcto: ${diagnosticoCorrecto ? 'Sí' : 'No'}
-  Comentario: ${diagnosticoComentario}
+    // Calificación General
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("CALIFICACIÓN GENERAL", margin, yPosition);
+    yPosition += 6;
+    
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${notaPromedio.toFixed(1)}/5.0`, margin, yPosition);
+    yPosition += 12;
 
-FORTALEZAS:
-${fortalezas.map((f: string, i: number) => `  ${i + 1}. ${f}`).join('\n')}
+    // Puntajes por Criterio
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("PUNTAJES POR CRITERIO", margin, yPosition);
+    yPosition += 6;
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    
+    Object.entries(puntajes).forEach(([key, value], index) => {
+      const label = puntajeLabels[key] || key;
+      const score = value as number;
+      
+      // Simple row with minimal styling
+      if (index % 2 === 0) {
+        doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+        doc.rect(margin, yPosition - 3, pageWidth - 2 * margin, 6, 'F');
+      }
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      doc.text(label, margin + 2, yPosition + 1);
+      
+      doc.setFont("helvetica", "bold");
+      doc.text(`${score}/5`, pageWidth - margin - 10, yPosition + 1, { align: "right" });
+      
+      yPosition += 6;
+    });
+    
+    yPosition += 5;
 
-DEBILIDADES:
-${debilidades.map((d: string, i: number) => `  ${i + 1}. ${d}`).join('\n')}
+    // Diagnóstico
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("DIAGNÓSTICO", margin, yPosition);
+    yPosition += 6;
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Tu diagnóstico:", margin, yPosition);
+    doc.setFont("helvetica", "normal");
+    const splitDiagEst = doc.splitTextToSize(diagnosticoEstudiante, pageWidth - 2 * margin - 50);
+    doc.text(splitDiagEst, margin + 45, yPosition);
+    yPosition += Math.max(splitDiagEst.length * 4, 5);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Correcto:", margin, yPosition);
+    doc.setFont("helvetica", "normal");
+    const splitDiagReal = doc.splitTextToSize(diagnosticoReal, pageWidth - 2 * margin - 50);
+    doc.text(splitDiagReal, margin + 45, yPosition);
+    yPosition += Math.max(splitDiagReal.length * 4, 5);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Resultado:", margin, yPosition);
+    doc.setFont("helvetica", "bold");
+    doc.text(diagnosticoCorrecto ? 'Correcto' : 'Incorrecto', margin + 45, yPosition);
+    yPosition += 5;
+    
+    if (diagnosticoComentario) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7);
+      const splitComment = doc.splitTextToSize(
+        diagnosticoComentario,
+        pageWidth - 2 * margin
+      );
+      doc.text(splitComment, margin, yPosition);
+      yPosition += splitComment.length * 3 + 3;
+    }
+    yPosition += 3;
 
-SUGERENCIAS:
-${sugerencias.map((s: string, i: number) => `  ${i + 1}. ${s}`).join('\n')}
-    `.trim();
+    // Fortalezas
+    if (fortalezas.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("FORTALEZAS", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      fortalezas.forEach((fortaleza: string, i: number) => {
+        const splitText = doc.splitTextToSize(
+          `${i + 1}. ${fortaleza}`,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 3.5;
+      });
+      yPosition += 3;
+    }
 
-    const blob = new Blob([informe], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `feedback-simulacion-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Debilidades
+    if (debilidades.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("ÁREAS DE MEJORA", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      debilidades.forEach((debilidad: string, i: number) => {
+        const splitText = doc.splitTextToSize(
+          `${i + 1}. ${debilidad}`,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 3.5;
+      });
+      yPosition += 3;
+    }
+
+    // Sugerencias
+    if (sugerencias.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("SUGERENCIAS PARA MEJORAR", margin, yPosition);
+      yPosition += 6;
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      
+      sugerencias.forEach((sugerencia: string, i: number) => {
+        const splitText = doc.splitTextToSize(
+          `${i + 1}. ${sugerencia}`,
+          pageWidth - 2 * margin
+        );
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 3.5;
+      });
+    }
+
+    // Save PDF
+    const fileName = `feedback-simulacion-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   const handleShare = async () => {
@@ -283,7 +434,8 @@ ${sugerencias.map((s: string, i: number) => `  ${i + 1}. ${s}`).join('\n')}
           <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
             <div className="space-y-3">
               {Object.entries(puntajes).map(([key, value]) => {
-                const percentage = ((value as number) / 5) * 100;
+                const numValue = value as number;
+                const percentage = (numValue / 5) * 100;
                 return (
                   <div key={key}>
                     <div className="flex justify-between mb-1">
@@ -291,7 +443,7 @@ ${sugerencias.map((s: string, i: number) => `  ${i + 1}. ${s}`).join('\n')}
                         {puntajeLabels[key] || key}
                       </span>
                       <span className="text-xs font-bold text-[#1098f7]">
-                        {value}/5
+                        {numValue}/5
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
