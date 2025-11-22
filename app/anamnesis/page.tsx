@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AntecedentesMedicos from "../components/medical-history/AntecedentesMedicos";
-import Consulta from "../components/consulta/Consulta";
-import Stepper from "../components/Stepper";
+import type { ClinicalCase } from "@/types/case";
+import AntecedentesMedicos from "../../components/medical-history/AntecedentesMedicos";
+import Consulta from "../../components/consulta/Consulta";
+import Stepper from "../../components/Stepper";
 
 export default function AnamnesisPage() {
   const router = useRouter();
@@ -20,6 +21,45 @@ export default function AnamnesisPage() {
     antecedentesPersonales: "Hipertensión arterial desde hace 5 años. Diabetes tipo 2 diagnosticada hace 3 años. No fumadora. Sedentaria.",
     contextoIngreso: "Paciente llega al servicio de urgencias en ambulancia tras presentar dolor torácico intenso. Se encuentra hemodinámicamente estable al ingreso. Se realiza ECG que muestra elevación del segmento ST en derivaciones anteroseptales.",
     medicamentosYAlergias: "Metformina 850mg cada 12 horas. Losartán 50mg diario. No alergias conocidas a medicamentos."
+  };
+
+  // Caso clínico de ejemplo basado en los datos del paciente
+  const clinicalCase: ClinicalCase = {
+    id: "1",
+    especialidad: "urgencia",
+    nivel_dificultad: "medio",
+    paciente: {
+      edad: pacienteData.edad,
+      sexo: pacienteData.sexo.toLowerCase() as "masculino" | "femenino" | "otro",
+      ocupacion: pacienteData.ocupacion,
+      contexto_ingreso: pacienteData.contextoIngreso,
+    },
+    motivo_consulta: pacienteData.motivoConsulta,
+    sintomas: {
+      descripcion_general: "Dolor torácico de inicio súbito",
+      detalle: ["Dolor torácico", "Disnea", "Sudoración"],
+    },
+    antecedentes: {
+      personales: pacienteData.antecedentesPersonales.split(". "),
+      familiares: [],
+      farmacos: pacienteData.medicamentosYAlergias.split(". "),
+      alergias: [],
+    },
+    examen_fisico: {
+      signos_vitales: {
+        temperatura: 36.5,
+        frecuencia_cardiaca: 90,
+        presion_arterial: "140/90",
+        frecuencia_respiratoria: 20,
+        saturacion_o2: 98,
+      },
+      hallazgos_relevantes: [],
+    },
+    examenes: {},
+    diagnostico_principal: "",
+    diagnosticos_diferenciales: [],
+    info_oculta: [],
+    info_prohibida: [],
   };
 
   const steps = [
@@ -60,7 +100,7 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 1 && (
-          <Consulta />
+          <Consulta clinicalCase={clinicalCase} />
         )}
       </div>
       

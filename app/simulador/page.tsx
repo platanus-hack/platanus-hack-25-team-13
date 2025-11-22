@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClinicalCase, ChatMessage } from "@/types/case";
-import ChatBox from "@/components/ChatBox";
+import ChatBox from "../../components/consulta/ChatBox";
 
 export default function SimuladorPage() {
   const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaStethoscope, FaClock, FaCheckCircle, FaTimesCircle, FaUser, FaArrowRight } from "react-icons/fa";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Dot } from "recharts";
-import LoadingScreen from "./components/utils/LoadingScreen";
+import LoadingScreen from "../components/utils/LoadingScreen";
 
 export default function Home() {
   const router = useRouter();
