@@ -8,7 +8,9 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function PerfilPage() {
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile(user?.id);
+  // Only pass userId when user is loaded to avoid unnecessary calls
+  const userId = authLoading ? undefined : user?.id;
+  const { profile, loading: profileLoading } = useProfile(userId);
   const router = useRouter();
 
   return (

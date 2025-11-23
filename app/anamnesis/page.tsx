@@ -11,9 +11,12 @@ import Feedback from "../../components/anamnesis/Feedback";
 import ChatInput from "../../components/anamnesis/ChatInput";
 import ChatImage from "../../components/anamnesis/ChatImage";
 import Stepper from "../../components/Stepper";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 
 export default function AnamnesisPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -24,6 +27,8 @@ export default function AnamnesisPage() {
   const [simulationId, setSimulationId] = useState<string | null>(null);
   const [feedbackData, setFeedbackData] = useState<any>(null);
   const [examImageUrl, setExamImageUrl] = useState<string | null>(null);
+  const [caseStartTime, setCaseStartTime] = useState<Date | null>(null);
+  const [publicId, setPublicId] = useState<string | null>(null);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -44,6 +49,19 @@ export default function AnamnesisPage() {
           // Guardar initialMessage
           if (parsedCase.initialMessage) {
             setInitialMessage(parsedCase.initialMessage);
+          }
+
+          // Guardar publicId y tiempo de inicio
+          if (parsedCase.publicId) {
+            setPublicId(parsedCase.publicId);
+          }
+          
+          // Guardar tiempo de inicio para calcular duración
+          const startTime = parsedCase.startTime || parsedCase.createdAt;
+          if (startTime) {
+            setCaseStartTime(new Date(startTime));
+          } else {
+            setCaseStartTime(new Date()); // Si no hay, usar ahora
           }
 
           // Capitalizar sexo
@@ -287,8 +305,53 @@ export default function AnamnesisPage() {
         // Check if diagnosis was submitted
         if (data.data.actionTaken === "submit_diagnosis" && data.data.feedback) {
           // Save feedback data and move to feedback step
-          setFeedbackData(data.data.feedback);
+          const feedback = data.data.feedback;
+          setFeedbackData(feedback);
           setCurrentStep(2);
+          
+          // Save to Supabase
+          if (user && publicId && caseStartTime) {
+            const endTime = new Date();
+            const tiempoDemora = Math.floor((endTime.getTime() - caseStartTime.getTime()) / 1000); // segundos
+            
+            // Calcular calificación promedio
+            const promedioGeneral = feedback.puntajes
+              ? Object.values(feedback.puntajes).reduce((a: number, b: number) => a + b, 0) /
+                Object.keys(feedback.puntajes).length
+              : 0;
+
+            // Obtener diagnóstico final
+            const diagnosticoFinal = feedback.diagnostico?.diagnostico_real || "";
+
+            // Update anamnesis in database
+            supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session?.access_token) {
+                fetch("/api/update-anamnesis", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    public_id: publicId,
+                    calificacion: promedioGeneral,
+                    tiempo_demora: tiempoDemora,
+                    is_completed: true,
+                    diagnostico_final: diagnosticoFinal,
+                    feedback_data: feedback,
+                  }),
+                }).then((res) => {
+                  if (res.ok) {
+                    console.log("Anamnesis actualizada exitosamente en Supabase");
+                  } else {
+                    console.error("Error actualizando anamnesis:", res.statusText);
+                  }
+                }).catch((err) => {
+                  console.error("Error updating anamnesis:", err);
+                });
+              }
+            });
+          }
           return;
         }
       } else {

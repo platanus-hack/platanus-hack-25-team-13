@@ -9,6 +9,10 @@ export interface Anamnesis {
   public_id?: string;
   created_at?: string;
   updated_at?: string;
+  calificacion?: number;
+  tiempo_demora?: number; // tiempo en segundos
+  is_completed?: boolean;
+  diagnostico_final?: string;
   feedback_data?: {
     puntajes?: Record<string, number>;
     comentarios?: {
@@ -88,11 +92,63 @@ export function useAnamnesis() {
     return data || [];
   };
 
+  const updateAnamnesis = async (
+    anamnesisId: number,
+    updates: {
+      calificacion?: number;
+      tiempo_demora?: number;
+      is_completed?: boolean;
+      diagnostico_final?: string;
+      feedback_data?: any;
+    }
+  ): Promise<Anamnesis | null> => {
+    const { data, error } = await supabase
+      .from("anamnesis")
+      .update(updates)
+      .eq("id", anamnesisId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating anamnesis:", error);
+      return null;
+    }
+
+    return data;
+  };
+
+  const updateAnamnesisByPublicId = async (
+    publicId: string,
+    updates: {
+      calificacion?: number;
+      tiempo_demora?: number;
+      is_completed?: boolean;
+      diagnostico_final?: string;
+      feedback_data?: any;
+    }
+  ): Promise<Anamnesis | null> => {
+    const { data, error } = await supabase
+      .from("anamnesis")
+      .update(updates)
+      .eq("public_id", publicId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating anamnesis by public_id:", error);
+      return null;
+    }
+
+    return data;
+  };
+
   return {
     createAnamnesis,
     getAnamnesisById,
     getAnamnesisByPublicId,
     getUserAnamnesis,
+    updateAnamnesis,
+    updateAnamnesisByPublicId,
   };
 }
 

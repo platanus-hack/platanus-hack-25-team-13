@@ -8,13 +8,9 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper function to update profile from user metadata
-  const updateProfileFromMetadata = async (userId: string) => {
+  // Helper function to update profile from user metadata (only called when needed)
+  const updateProfileFromMetadata = async (userId: string, userMetadata: any) => {
     try {
-      // Get user metadata
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.id !== userId) return;
-      
       // Wait a bit for the profile to be created by trigger if it doesn't exist
       await new Promise((resolve) => setTimeout(resolve, 500));
       
@@ -27,7 +23,6 @@ export function useAuth() {
       
       // If profile is empty, try to update from user metadata or Google profile
       if (profileData && !profileData.first_name && !profileData.last_name) {
-        const userMetadata = user.user_metadata;
         const fullName = userMetadata?.full_name || userMetadata?.name || "";
         const firstName = userMetadata?.first_name || userMetadata?.given_name || "";
         const lastName = userMetadata?.last_name || userMetadata?.family_name || "";
@@ -60,15 +55,25 @@ export function useAuth() {
 
   // Get current user
   useEffect(() => {
+    let mounted = true;
+    let updateTimeout: NodeJS.Timeout | null = null;
+    const processedUsers = new Set<string>(); // Track which users we've already processed
+
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user ?? null;
-      setUser(currentUser);
-      setLoading(false);
-      
-      // If user is authenticated, try to update profile from metadata
-      if (currentUser) {
-        updateProfileFromMetadata(currentUser.id);
+      if (mounted) {
+        setUser(currentUser);
+        setLoading(false);
+        
+        // If user is authenticated and we haven't processed this user yet, try to update profile from metadata
+        if (currentUser && !processedUsers.has(currentUser.id)) {
+          processedUsers.add(currentUser.id);
+          if (updateTimeout) clearTimeout(updateTimeout);
+          updateTimeout = setTimeout(() => {
+            updateProfileFromMetadata(currentUser.id, currentUser.user_metadata);
+          }, 2000); // Debounce to avoid excessive calls
+        }
       }
     };
 
@@ -78,17 +83,30 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       setLoading(false);
       
-      // If user is authenticated, try to update profile from metadata
-      if (currentUser) {
-        updateProfileFromMetadata(currentUser.id);
+      // If user is authenticated and we haven't processed this user yet, try to update profile from metadata
+      if (currentUser && !processedUsers.has(currentUser.id)) {
+        processedUsers.add(currentUser.id);
+        if (updateTimeout) clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => {
+          updateProfileFromMetadata(currentUser.id, currentUser.user_metadata);
+        }, 2000); // Debounce to avoid excessive calls
+      } else if (!currentUser) {
+        // Clear processed users when logged out
+        processedUsers.clear();
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      if (updateTimeout) clearTimeout(updateTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Auth methods

@@ -10,11 +10,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnamnesis, Anamnesis } from "@/hooks/useAnamnesis";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile(user?.id);
+  // Only pass userId when user is loaded to avoid unnecessary calls
+  const userId = authLoading ? undefined : user?.id;
+  const { profile, loading: profileLoading } = useProfile(userId);
   const { getUserAnamnesis } = useAnamnesis();
   const [isLoading, setIsLoading] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
@@ -23,6 +26,8 @@ export default function Home() {
   const [generatingCase, setGeneratingCase] = useState(false);
   const [anamnesis, setAnamnesis] = useState<Anamnesis[]>([]);
   const [loadingAnamnesis, setLoadingAnamnesis] = useState(true);
+  const [publicIdInput, setPublicIdInput] = useState("");
+  const [loadingPublicId, setLoadingPublicId] = useState(false);
   const isDev = process.env.NEXT_PUBLIC_DEV === "true";
 
   const stats = useUserStats(anamnesis);
@@ -57,12 +62,28 @@ export default function Home() {
     setIsLoading(true);
     setGeneratingCase(true);
     try {
+      // Get auth token for authenticated requests
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      
+      if (sessionError) {
+        console.error("Error getting session:", sessionError);
+      }
+      
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+        console.log("Sending request with auth token, user_id:", user?.id);
+      } else {
+        console.warn("No session token available, user_id:", user?.id);
+      }
+
       const res = await fetch("/api/generar-caso", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           especialidad,
           nivel_dificultad: nivelDificultad,
+          user_id: user?.id, // Include user_id as fallback
         }),
       });
       if (!res.ok) throw new Error("Error en la API");
@@ -71,6 +92,10 @@ export default function Home() {
       if (data?.success && data?.data) {
         // Guardar el caso en sessionStorage y navegar a anamnesis
         sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
+        // If publicId is returned, log it for sharing
+        if (data.data.publicId) {
+          console.log("Caso guardado con public_id:", data.data.publicId);
+        }
         router.push("/anamnesis");
       } else {
         throw new Error("No se pudo generar el caso");
@@ -80,6 +105,36 @@ export default function Home() {
       alert("Error generando caso");
       setIsLoading(false);
       setGeneratingCase(false);
+    }
+  };
+
+  const handleLoadByPublicId = async () => {
+    if (!publicIdInput.trim()) {
+      alert("Por favor ingresa un public_id");
+      return;
+    }
+
+    setLoadingPublicId(true);
+    try {
+      const res = await fetch(`/api/cargar-caso?public_id=${publicIdInput.trim()}`);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error cargando caso");
+      }
+
+      const data = await res.json();
+      if (data?.success && data?.data) {
+        // Guardar el caso en sessionStorage y navegar a anamnesis
+        sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
+        router.push("/anamnesis");
+      } else {
+        throw new Error("No se pudo cargar el caso");
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "Error cargando caso");
+    } finally {
+      setLoadingPublicId(false);
     }
   };
 
@@ -135,11 +190,11 @@ export default function Home() {
 
   // Convertir anamnesis a formato de historial
   const historialSimulaciones = anamnesis.map((a) => {
-    const puntajes = a.feedback_data?.puntajes;
-    const promedio = puntajes
-      ? Object.values(puntajes).reduce((acc, val) => acc + val, 0) /
-        Object.values(puntajes).length
-      : 0;
+    // Usar calificacion de la BD si existe, sino calcular desde feedback_data
+    const promedio = a.calificacion ?? (a.feedback_data?.puntajes
+      ? Object.values(a.feedback_data.puntajes).reduce((acc: number, val: number) => acc + val, 0) /
+        Object.values(a.feedback_data.puntajes).length
+      : 0);
     const nota = Math.round(promedio * 10) / 10;
     const resultado = a.feedback_data?.diagnostico?.correcto ? "correcto" : "incorrecto";
     const fecha = a.created_at
@@ -150,11 +205,26 @@ export default function Home() {
         })
       : "Fecha no disponible";
 
+    // Calcular duración en formato legible
+    let duracion = "N/A";
+    if (a.tiempo_demora) {
+      const minutos = Math.floor(a.tiempo_demora / 60);
+      const segundos = a.tiempo_demora % 60;
+      if (minutos > 0) {
+        duracion = `${minutos}m ${segundos}s`;
+      } else {
+        duracion = `${segundos}s`;
+      }
+    }
+
+    // Usar diagnostico_final como título si existe, sino usar title o default
+    const caso = a.diagnostico_final || a.title || `Caso Clínico #${a.id}`;
+
     return {
       id: a.id,
       fecha,
-      caso: a.title || `Caso Clínico #${a.id}`,
-      duracion: "N/A", // TODO: calcular duración si está disponible
+      caso,
+      duracion,
       resultado,
       puntuacion: promedio,
       nota,
@@ -287,6 +357,36 @@ export default function Home() {
                       Dev: Caso Dev
                     </button>
                   )}
+
+                  {/* Load case by public_id */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Cargar caso por Public ID
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={publicIdInput}
+                        onChange={(e) => setPublicIdInput(e.target.value)}
+                        placeholder="Ingresa el public_id del caso"
+                        className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-black focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
+                      />
+                      <button
+                        onClick={handleLoadByPublicId}
+                        disabled={loadingPublicId || !publicIdInput.trim()}
+                        className="bg-[#1098f7] text-white px-4 py-1.5 rounded-lg disabled:opacity-50 hover:bg-[#0d7fd6] transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      >
+                        {loadingPublicId ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Cargando...
+                          </>
+                        ) : (
+                          "Cargar"
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
