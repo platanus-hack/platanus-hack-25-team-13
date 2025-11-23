@@ -51,7 +51,7 @@ export default function Consulta({
 
       <div className="flex-1 min-h-0 flex flex-col p-4">
         {/* Chat */}
-        <div className="flex-1 min-h-0 overflow-hidden border rounded-lg mb-4">
+        <div className="flex-1 min-h-0 overflow-hidden border rounded-lg mb-4 flex flex-col">
           <ChatBox
             clinicalCase={clinicalCase}
             messages={messages}

@@ -2,17 +2,27 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const handleLogoClick = () => {
+    if (user) {
+      router.push("/");
+    } else {
+      router.push("/landing");
+    }
+  };
 
   return (
     <nav className="bg-[#1098f7] px-8 py-4 fixed w-full top-0 z-50 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <button
-          onClick={() => router.push("/landing")}
+          onClick={handleLogoClick}
           className="flex items-center gap-3 hover:opacity-90 transition-opacity"
         >
           <div className="bg-white p-2 rounded-lg">

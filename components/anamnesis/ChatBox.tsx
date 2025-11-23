@@ -70,7 +70,7 @@ export default function ChatBox({ clinicalCase, messages, loading, onMessagesCha
   const hasMessages = messages.length > 1 || (messages.length === 1 && messages[0].role === "user");
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 relative">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 relative h-full" style={{ maxHeight: '100%' }}>
       {showTyping && messages.length === 0 && (
         <div className="flex justify-start">
           <div className="bg-gray-200 text-gray-800 max-w-[70%] rounded-lg p-3">
