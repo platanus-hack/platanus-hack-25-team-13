@@ -26,8 +26,6 @@ export default function Home() {
   const [generatingCase, setGeneratingCase] = useState(false);
   const [anamnesis, setAnamnesis] = useState<Anamnesis[]>([]);
   const [loadingAnamnesis, setLoadingAnamnesis] = useState(true);
-  const [publicIdInput, setPublicIdInput] = useState("");
-  const [loadingPublicId, setLoadingPublicId] = useState(false);
   const isDev = process.env.NEXT_PUBLIC_DEV === "true";
 
   const stats = useUserStats(anamnesis);
@@ -91,10 +89,16 @@ export default function Home() {
       const data = await res.json();
       if (data?.success && data?.data) {
         // Guardar el caso en sessionStorage y navegar a anamnesis
-        sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
+        sessionStorage.setItem("generatedCase", JSON.stringify({
+          ...data.data,
+          startTime: new Date().toISOString(), // Guardar tiempo de inicio
+        }));
         // If publicId is returned, log it for sharing
         if (data.data.publicId) {
           console.log("Caso guardado con public_id:", data.data.publicId);
+        }
+        if (data.data.anamnesisId) {
+          console.log("Caso guardado con anamnesisId:", data.data.anamnesisId);
         }
         router.push("/anamnesis");
       } else {
@@ -105,36 +109,6 @@ export default function Home() {
       alert("Error generando caso");
       setIsLoading(false);
       setGeneratingCase(false);
-    }
-  };
-
-  const handleLoadByPublicId = async () => {
-    if (!publicIdInput.trim()) {
-      alert("Por favor ingresa un public_id");
-      return;
-    }
-
-    setLoadingPublicId(true);
-    try {
-      const res = await fetch(`/api/cargar-caso?public_id=${publicIdInput.trim()}`);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Error cargando caso");
-      }
-
-      const data = await res.json();
-      if (data?.success && data?.data) {
-        // Guardar el caso en sessionStorage y navegar a anamnesis
-        sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
-        router.push("/anamnesis");
-      } else {
-        throw new Error("No se pudo cargar el caso");
-      }
-    } catch (e) {
-      console.error(e);
-      alert(e instanceof Error ? e.message : "Error cargando caso");
-    } finally {
-      setLoadingPublicId(false);
     }
   };
 
@@ -357,36 +331,6 @@ export default function Home() {
                       Dev: Caso Dev
                     </button>
                   )}
-
-                  {/* Load case by public_id */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Cargar caso por Public ID
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={publicIdInput}
-                        onChange={(e) => setPublicIdInput(e.target.value)}
-                        placeholder="Ingresa el public_id del caso"
-                        className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-black focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
-                      />
-                      <button
-                        onClick={handleLoadByPublicId}
-                        disabled={loadingPublicId || !publicIdInput.trim()}
-                        className="bg-[#1098f7] text-white px-4 py-1.5 rounded-lg disabled:opacity-50 hover:bg-[#0d7fd6] transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                      >
-                        {loadingPublicId ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Cargando...
-                          </>
-                        ) : (
-                          "Cargar"
-                        )}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

@@ -147,11 +147,21 @@ export interface PatientContext {
 
 export type SimulationStatus = "active" | "completed" | "abandoned";
 
+export interface RequestedExam {
+  tipo: string;
+  clasificacion?: string;
+  subclasificacion?: string;
+  imageUrl: string | null;
+  requestedAt: Date;
+  found: boolean;
+}
+
 export interface Simulation {
   id: string;
   clinicalCase: ClinicalCase;
   patientContext: PatientContext;
   chatHistory: ChatMessage[];
+  requestedExams?: RequestedExam[];
   status: SimulationStatus;
   createdAt: Date;
   updatedAt: Date;

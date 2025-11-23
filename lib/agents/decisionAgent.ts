@@ -10,12 +10,18 @@ import type { ChatMessage } from "@/types/case";
 export type SystemAction =
   | "patient_interaction"
   | "submit_diagnosis"
-  | "end_simulation";
+  | "end_simulation"
+  | "request_exam";
 
 export interface DecisionResult {
   action: SystemAction;
   reasoning: string;
   extractedDiagnosis: string | null;
+  examRequest?: {
+    tipo: string;
+    clasificacion?: string;
+    subclasificacion?: string;
+  } | null;
 }
 
 /**
@@ -60,7 +66,7 @@ export async function decideAction(
     // Validate response
     if (
       !decision.action ||
-      !["patient_interaction", "submit_diagnosis", "end_simulation"].includes(
+      !["patient_interaction", "submit_diagnosis", "end_simulation", "request_exam"].includes(
         decision.action
       )
     ) {
@@ -71,6 +77,7 @@ export async function decideAction(
         action: "patient_interaction",
         reasoning: "Default action due to invalid LLM response",
         extractedDiagnosis: null,
+        examRequest: null,
       };
     }
 
@@ -95,6 +102,7 @@ export async function decideAction(
       action: decision.action as SystemAction,
       reasoning: decision.reasoning || "No reasoning provided",
       extractedDiagnosis: decision.extracted_diagnosis || null,
+      examRequest: decision.exam_request || null,
     };
   } catch (error) {
     console.error("Error in decision agent:", error);
@@ -103,6 +111,7 @@ export async function decideAction(
       action: "patient_interaction",
       reasoning: "Error occurred, defaulting to patient interaction",
       extractedDiagnosis: null,
+      examRequest: null,
     };
   }
 }

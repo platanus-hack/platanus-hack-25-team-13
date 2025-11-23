@@ -6,9 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:assistant": "tsx scripts/setup-assistant.ts",
+    "update:assistant": "tsx scripts/setup-assistant.ts update",
+    "test:assistant": "tsx -e \"import('./lib/agents/assistantHelper.js').then(m => m.testAssistant())\""
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "@supabase/supabase-js": "^2.84.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.4",

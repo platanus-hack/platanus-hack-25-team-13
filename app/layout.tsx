@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "../components/Header";
+import Navbar from "../components/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema de Gestión Médica",
-  description: "Sistema de gestión médica",
+  title: "MediSim - Simulación Médica",
+  description: "Practica medicina con pacientes virtuales",
 };
 
 export default function RootLayout({
@@ -24,14 +24,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="h-full">
+    <html lang="es">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full flex flex-col bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff]`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white`}
       >
-        <Header />
-        <div className="flex-1">
+        <Navbar />
+        <main className="pt-20" style={{ minHeight: 'calc(100vh - 5rem)' }}>
           {children}
-        </div>
+        </main>
       </body>
     </html>
   );

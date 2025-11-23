@@ -11,6 +11,9 @@ let ASSISTANT_ID: string | null = null;
 /**
  * Inicializa el Assistant de OpenAI con File Search habilitado
  * Se ejecuta una sola vez al inicio o cuando se necesite
+ *
+ * IMPORTANTE: Los archivos deben estar previamente subidos a OpenAI.
+ * Usa el script scripts/upload-files.ts para subir archivos y obtener los IDs.
  */
 export async function initializeAssistant() {
   try {
@@ -20,42 +23,26 @@ export async function initializeAssistant() {
       return { assistantId: ASSISTANT_ID };
     }
 
-    // 1. Buscar TODOS los archivos PDF en la carpeta
-    const knowledgeDir = path.join(process.cwd(), "data", "medical-knowledge");
+    // Obtener los file IDs desde variables de entorno
+    const fileIdsString = process.env.OPENAI_FILE_IDS;
 
-    const files = fs.readdirSync(knowledgeDir);
-    const pdfFiles = files.filter((file) =>
-      file.toLowerCase().endsWith(".pdf")
-    );
-
-    if (pdfFiles.length === 0) {
+    if (!fileIdsString) {
       throw new Error(
-        "No se encontró ningún archivo PDF en data/medical-knowledge"
+        "OPENAI_FILE_IDS no está configurado. Ejecuta scripts/upload-files.ts primero para subir los archivos y obtener los IDs."
       );
     }
 
-    console.log(`Encontrados ${pdfFiles.length} archivos PDF:`, pdfFiles);
+    const uploadedFileIds = fileIdsString.split(",").map(id => id.trim()).filter(id => id.length > 0);
 
-    // 2. Subir TODOS los PDFs a OpenAI en paralelo
-    console.log("Subiendo archivos en paralelo...");
-    const uploadPromises = pdfFiles.map(async (pdfFile) => {
-      const pdfPath = path.join(knowledgeDir, pdfFile);
-      const fileStream = fs.createReadStream(pdfPath);
+    if (uploadedFileIds.length === 0) {
+      throw new Error(
+        "OPENAI_FILE_IDS está vacío. Ejecuta scripts/upload-files.ts primero."
+      );
+    }
 
-      const openai = getOpenAIClient();
-      const uploadedFile = await openai.files.create({
-        file: fileStream,
-        purpose: "assistants",
-      });
+    console.log(`Usando ${uploadedFileIds.length} archivos previamente subidos`);
 
-      console.log(`✓ ${pdfFile} subido:`, uploadedFile.id);
-      return uploadedFile.id;
-    });
-
-    const uploadedFileIds = await Promise.all(uploadPromises);
-    console.log(`✓ Todos los archivos subidos (${uploadedFileIds.length})`);
-
-    // 3. Crear el Assistant con File Search habilitado y TODOS los archivos
+    // Crear el Assistant con File Search habilitado y los archivos ya subidos
     const openai = getOpenAIClient();
     const assistant = await openai.beta.assistants.create({
       name: "Generador de Casos APS",
