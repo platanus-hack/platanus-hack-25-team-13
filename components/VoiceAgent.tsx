@@ -59,9 +59,18 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
 
     if (currentAudioRef.current) {
       console.log('🛑 Deteniendo audio anterior');
-      currentAudioRef.current.pause();
-      currentAudioRef.current.src = '';
-      currentAudioRef.current = null;
+      const prevAudio = currentAudioRef.current;
+      currentAudioRef.current = null; // Limpiar referencia primero para evitar conflictos
+
+      // Solo pausar si no está ya pausado
+      if (!prevAudio.paused) {
+        try {
+          prevAudio.pause();
+        } catch (e) {
+          console.warn('⚠️ Error al pausar audio anterior:', e);
+        }
+      }
+      prevAudio.src = '';
     }
 
     // Timeout de seguridad - si el audio no se reproduce en 15 segundos, volver a idle
@@ -126,7 +135,9 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
         clearTimeout(safetyTimeout); // Limpiar timeout de seguridad
         setAgentState('idle');
         URL.revokeObjectURL(audioUrl);
-        currentAudioRef.current = null;
+        if (currentAudioRef.current === audio) {
+          currentAudioRef.current = null;
+        }
       };
 
       const handleError = (e: Event) => {
@@ -140,7 +151,9 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
         clearTimeout(safetyTimeout); // Limpiar timeout de seguridad
         setAgentState('idle');
         URL.revokeObjectURL(audioUrl);
-        currentAudioRef.current = null;
+        if (currentAudioRef.current === audio) {
+          currentAudioRef.current = null;
+        }
       };
 
       const handleWaiting = () => {
@@ -193,10 +206,27 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
                   hasStartedPlayback = true;
                   console.log('▶️ Suficientes datos en buffer, iniciando reproducción');
                   try {
-                    await audio.play();
-                    console.log('✅ Reproducción iniciada exitosamente');
+                    // Esperar un momento para asegurar que el audio esté listo
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
+                    // Verificar que el audio aún es el actual antes de reproducir
+                    if (currentAudioRef.current === audio) {
+                      // Usar await directamente en play() para manejar la promesa correctamente
+                      await audio.play();
+                      console.log('✅ Reproducción iniciada exitosamente');
+                    } else {
+                      console.log('⚠️ Audio reemplazado antes de iniciar reproducción');
+                      isReading = false;
+                      return;
+                    }
                   } catch (playError) {
-                    console.error('❌ Error al iniciar reproducción:', playError);
+                    // Verificar si el error es por interrupción con pause
+                    const errorMessage = (playError as Error).message || '';
+                    if (errorMessage.includes('pause')) {
+                      console.log('⚠️ Reproducción interrumpida por pause() - esto es esperado');
+                    } else {
+                      console.error('❌ Error al iniciar reproducción:', playError);
+                    }
                     clearTimeout(safetyTimeout);
                     setAgentState('idle');
                     isReading = false;
@@ -286,9 +316,9 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
           console.log('📋 Diagnóstico presentado - generando feedback');
           
           // Reproducir mensaje de confirmación si existe
-          if (agentResponse && agentResponse.trim()) {
-            await playTTSStream(agentResponse);
-          }
+          // if (agentResponse && agentResponse.trim()) {
+          //   await playTTSStream(agentResponse);
+          // }
           
           // Ejecutar callback con el feedback
           if (feedback && onFeedback) {
@@ -370,9 +400,18 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
       clearTimeout(timeout);
       // NO desconectar ni resetear hasConnectedRef en cleanup para evitar problemas con Strict Mode
       if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current.src = '';
-        currentAudioRef.current = null;
+        const audioToClean = currentAudioRef.current;
+        currentAudioRef.current = null; // Limpiar referencia primero
+
+        // Solo pausar si no está ya pausado
+        if (!audioToClean.paused) {
+          try {
+            audioToClean.pause();
+          } catch (e) {
+            console.warn('⚠️ Error al pausar audio en cleanup:', e);
+          }
+        }
+        audioToClean.src = '';
       }
     };
   }, []); // Array vacío para ejecutar SOLO una vez, independiente del token
