@@ -85,6 +85,19 @@ export interface ChatMessage {
   timestamp?: Date;
 }
 
+// Plan de manejo del estudiante (lo que el estudiante propuso)
+export interface StudentManagementPlan {
+  requiere_derivacion: boolean;
+  tipo_derivacion: "no_requiere" | "ambulatoria_especialista" | "urgencia" | "hospitalizacion";
+  especialidad_derivacion?: string;
+  ingresa_programa_aps: boolean;
+  programa_aps?: string;
+  manejo_inicial_cesfam: string;
+  metas_terapeuticas: string;
+  plan_seguimiento: string;
+  diagnostico: string;
+}
+
 export interface FeedbackResult {
   puntajes: {
     anamnesis_motivo_consulta: number;

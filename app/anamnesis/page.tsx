@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
-import type { ClinicalCase, ChatMessage } from "@/types/case";
+import type { ClinicalCase, ChatMessage, StudentManagementPlan } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
 import Diagnostico from "../../components/anamnesis/Diagnostico";
@@ -370,6 +371,45 @@ export default function AnamnesisPage() {
     }
   }
 
+  async function handleSubmitManagementPlan(planData: StudentManagementPlan) {
+    if (!simulationId) return;
+
+    setFeedbackLoading(true);
+    setShowManagementModal(false);
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          simulationId,
+          managementPlan: planData,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error generando feedback");
+      }
+
+      const data = await res.json();
+      
+      if (data.success && data.feedback) {
+        // Save feedback and move to feedback step
+        setFeedbackData(data.feedback);
+        setCurrentStep(2);
+      } else {
+        throw new Error("No se recibió feedback del servidor");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Error enviando plan de manejo");
+      setShowManagementModal(true); // Reabrir el modal en caso de error
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }
+
   return (
     <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
       <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
@@ -460,7 +500,20 @@ export default function AnamnesisPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Plan de Manejo - Renderizado en un portal */}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <ManagementPlanModal
+          isOpen={showManagementModal}
+          onClose={() => setShowManagementModal(false)}
+          onSubmit={handleSubmitManagementPlan}
+          isAPS={clinicalCase?.especialidad === "aps"}
+          initialDiagnosis={detectedDiagnosis}
+        />,
+        document.body
+      )}
     </div>
   );
 }
+
 
