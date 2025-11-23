@@ -318,14 +318,21 @@ export default function AnamnesisPage() {
 
         // Update requested exams from engine response
         if (data.data.requestedExams && Array.isArray(data.data.requestedExams)) {
+          // Only show exam viewer if a NEW exam was added
+          const previousExamCount = requestedExams.length;
+          const newExamCount = data.data.requestedExams.length;
+          const isNewExam = newExamCount > previousExamCount;
+
           setRequestedExams(data.data.requestedExams);
 
-          // Show the latest exam
-          const latestExam = data.data.requestedExams[data.data.requestedExams.length - 1];
-          if (latestExam && latestExam.imageUrl) {
-            setExamImageUrl(latestExam.imageUrl);
-            setCurrentExamIndex(data.data.requestedExams.length - 1);
-            setShowExamViewer(true);
+          // Only show the exam viewer if this is a new exam
+          if (isNewExam) {
+            const latestExam = data.data.requestedExams[data.data.requestedExams.length - 1];
+            if (latestExam && latestExam.imageUrl) {
+              setExamImageUrl(latestExam.imageUrl);
+              setCurrentExamIndex(data.data.requestedExams.length - 1);
+              setShowExamViewer(true);
+            }
           }
         }
 
