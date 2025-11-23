@@ -44,7 +44,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section - Full Screen */}
-      <section className="min-h-screen bg-white pb-16 px-8 flex items-center">
+      <section className="min-h-screen bg-white pb-7 mb-[-2rem] px-8 flex items-center">
         <div className="max-w-6xl mx-auto w-full">
           {/* Hero Content */}
           <div className="text-center mb-16">
@@ -150,11 +150,11 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section - MINSAL */}
-      <section id="features" className="bg-white pt-8 pb-12 px-8">
+      <section id="features" className="bg-gray-50 py-20 px-8">
         <div className="max-w-7xl mx-auto w-full">
           {/* Destacado Principal */}
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full mb-6">
                 <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Normativa Chilena</span>
               </div>
@@ -205,7 +205,7 @@ export default function LandingPage() {
       </section>
 
       {/* Comparison Section - Evolución */}
-      <section className="min-h-screen bg-white pt-12 pb-12 px-8 flex items-center">
+      <section className="min-h-screen bg-white px-8 pt-12 flex items-center">
         <div className="max-w-7xl mx-auto w-full">
           {/* Timeline / Evolución */}
           <div className="max-w-6xl mx-auto">
@@ -219,7 +219,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 pb-14">
               {/* Método Tradicional */}
               <div className="relative bg-white rounded-2xl p-8 border border-gray-200 shadow-md">
                 <div className="text-center mb-8">
@@ -266,10 +266,10 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Con MediSim */}
+              {/* Con MedSim */}
               <div className="relative bg-white rounded-2xl p-8 border border-gray-200 shadow-md">
                 <div className="text-center mb-8">
-                  <h4 className="text-xl font-bold text-[#001c55] mb-2">MediSim como Complemento</h4>
+                  <h4 className="text-xl font-bold text-[#001c55] mb-2">MedSim como Complemento</h4>
                   <p className="text-sm text-[#1098f7]">Práctica ilimitada, feedback instantáneo</p>
                 </div>
                 <div className="space-y-8">
@@ -318,7 +318,7 @@ export default function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="min-h-screen bg-white pt-12 pb-12 px-8 flex items-center">
+      <section id="about" className="min-h-screen bg-gray-50 pb-6 px-8 flex items-center">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div>
@@ -326,7 +326,7 @@ export default function LandingPage() {
                 Entrenamiento clínico del futuro
               </h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                MediSim utiliza inteligencia artificial avanzada para crear simulaciones clínicas realistas que te preparan para situaciones del mundo real.
+                MedSim utiliza inteligencia artificial avanzada para crear simulaciones clínicas realistas que te preparan para situaciones del mundo real.
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
                 Nuestros casos están basados en guías clínicas chilenas oficiales, asegurando que tu entrenamiento esté alineado con los estándares nacionales.
@@ -389,21 +389,21 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-200 py-12 px-8">
+      <footer className="bg-[#1098f7] py-12 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="bg-[#1098f7] p-2 rounded-lg">
-                <FaStethoscope className="w-6 h-6 text-white" />
+              <div className="bg-white p-2 rounded-lg">
+                <FaStethoscope className="w-6 h-6 text-[#1098f7]" />
               </div>
-              <span className="text-2xl font-bold text-[#001c55]">MediSim</span>
+              <span className="text-2xl font-bold text-white">MedSim</span>
             </div>
           </div>
-          <div className="border-t border-gray-200 pt-8">
-            <p className="text-center text-gray-600">
-              2025 MediSim - Grupo 13 Platanus Hack 25
+          <div className="border-t border-white/20 pt-8">
+            <p className="text-center text-white">
+              2025 MedSim - Grupo 13 Platanus Hack 25
             </p>
-            <p className="text-center text-gray-500 text-sm mt-2">
+            <p className="text-center text-white/80 text-sm mt-2">
               Plataforma de simulación clínica para estudiantes de medicina
             </p>
           </div>

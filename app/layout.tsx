@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MediSim - Simulación Médica",
+  title: "MedSim - Simulación Médica",
   description: "Practica medicina con pacientes virtuales",
 };
 
