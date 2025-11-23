@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VoiceAgent from "@/components/VoiceAgent";
 import Feedback from "@/components/anamnesis/Feedback";
 import type { FeedbackResult, ClinicalCase } from "@/types/case";
@@ -32,6 +32,7 @@ export default function VoiceAgentPage() {
   const [selectedSpecialty, setSelectedSpecialty] = useState("aps");
   const [selectedDifficulty, setSelectedDifficulty] = useState<"facil" | "medio" | "dificil">("medio");
   const [caseStartTime, setCaseStartTime] = useState<Date | null>(null);
+  const [isMediaSourceCompatible, setIsMediaSourceCompatible] = useState<boolean | null>(null);
 
   const specialties = [
     { value: "aps", label: "APS (CESFAM)", icon: "🏥", description: "Con RAG usando guías clínicas chilenas" },
@@ -45,6 +46,31 @@ export default function VoiceAgentPage() {
     { value: "medio" as const, label: "Medio", description: "Casos intermedios con más detalles" },
     { value: "dificil" as const, label: "Difícil", description: "Casos complejos y desafiantes" },
   ];
+
+  // Verificar compatibilidad de MediaSource al montar el componente
+  useEffect(() => {
+    try {
+      const hasMediaSource = typeof MediaSource !== 'undefined';
+      const canPlayMpeg = hasMediaSource && MediaSource.isTypeSupported('audio/mpeg');
+      const isCompatible = hasMediaSource && canPlayMpeg;
+      
+      console.log('🔍 Verificación de compatibilidad MediaSource:', {
+        hasMediaSource,
+        canPlayMpeg,
+        isCompatible,
+        userAgent: navigator.userAgent
+      });
+      
+      setIsMediaSourceCompatible(isCompatible);
+      
+      if (!isCompatible) {
+        console.warn('⚠️ Dispositivo no compatible con MediaSource API - Voice Agent no disponible');
+      }
+    } catch (error) {
+      console.warn('⚠️ Error verificando MediaSource:', error);
+      setIsMediaSourceCompatible(false);
+    }
+  }, []);
 
   const handleGenerateCase = async () => {
     setLoading(true);
@@ -120,6 +146,20 @@ export default function VoiceAgentPage() {
             <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
               <div className="text-red-700 text-sm font-semibold mb-1">Error</div>
               <p className="text-red-600 text-xs">{error}</p>
+            </div>
+          )}
+
+          {/* Incompatibility warning */}
+          {isMediaSourceCompatible === false && (
+            <div className="mb-6 bg-orange-100 border border-orange-300 rounded-xl p-4 flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <div className="text-orange-800 font-bold mb-1">Voice Agent no disponible</div>
+                <div className="text-orange-700 text-sm">
+                  Tu navegador no soporta la tecnología necesaria para la conversación de voz en tiempo real.<br />
+                  Usa la <span className="font-semibold">versión chat</span>.
+                </div>
+              </div>
             </div>
           )}
 
@@ -223,11 +263,11 @@ export default function VoiceAgentPage() {
             {/* Botón de generar */}
             <button
               onClick={handleGenerateCase}
-              disabled={loading}
+              disabled={loading || isMediaSourceCompatible === false}
               className={`
                 w-full py-4 rounded-xl font-semibold text-sm transition-all duration-300 uppercase tracking-wide
                 ${
-                  loading
+                  loading || isMediaSourceCompatible === false
                     ? "bg-[#00072d]/20 text-[#00072d]/40 cursor-not-allowed"
                     : "bg-[#1098f7] text-white hover:bg-[#0d7ed9] hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 }
@@ -238,6 +278,8 @@ export default function VoiceAgentPage() {
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Generando caso clínico</span>
                 </div>
+              ) : isMediaSourceCompatible === false ? (
+                "Navegador No Compatible"
               ) : (
                 "Iniciar Simulación"
               )}
