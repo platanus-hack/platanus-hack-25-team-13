@@ -29,7 +29,8 @@ export interface DecisionResult {
  */
 export async function decideAction(
   message: string,
-  chatHistory: ChatMessage[]
+  chatHistory: ChatMessage[],
+  clinicalCase?: any
 ): Promise<DecisionResult> {
   // Build conversation context (last 4 messages for context)
   const recentMessages = chatHistory.slice(-4);
@@ -45,8 +46,24 @@ export async function decideAction(
           .join("\n")
       : "No hay conversación previa";
 
+  // Build clinical context (without revealing diagnosis)
+  let clinicalContext = "";
+  if (clinicalCase) {
+    clinicalContext = `
+CONTEXTO DEL CASO CLÍNICO (para inferir exámenes apropiados):
+- Síntomas: ${clinicalCase.sintomas?.descripcion_general || "No especificados"}
+- Motivo de consulta: ${clinicalCase.motivo_consulta || "No especificado"}
+- Hallazgos del examen físico: ${clinicalCase.examen_fisico?.hallazgos_relevantes?.join(", ") || "No especificados"}
+
+IMPORTANTE: Usa esta información para inferir qué tipo de hallazgos esperarías en los exámenes solicitados.
+Si el paciente tiene síntomas que sugieren una condición específica (ej: dolor torácico, tos, fiebre → posible neumonía),
+debes especificar esa subclasificación en el exam_request (ej: subclasificacion: "neumonia").
+NO uses "normal" como subclasificación a menos que el caso sea claramente normal.
+`.trim();
+  }
+
   const systemPrompt = decisionPrompts.system();
-  const userPrompt = decisionPrompts.user(message, conversationContext);
+  const userPrompt = decisionPrompts.user(message, conversationContext, clinicalContext);
 
   try {
     const response = await createChatCompletion(
@@ -62,6 +79,16 @@ export async function decideAction(
     );
 
     const decision = JSON.parse(response);
+
+    console.log("\n🧠 [decisionAgent] Decisión tomada:");
+    console.log("   Acción:", decision.action);
+    console.log("   Razonamiento:", decision.reasoning);
+    if (decision.action === "request_exam" && decision.exam_request) {
+      console.log("   Exam request:");
+      console.log("     Tipo:", decision.exam_request.tipo);
+      console.log("     Clasificación:", decision.exam_request.clasificacion || "(no especificada)");
+      console.log("     Subclasificación:", decision.exam_request.subclasificacion || "(no especificada)");
+    }
 
     // Validate response
     if (

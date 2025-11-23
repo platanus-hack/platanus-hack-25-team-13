@@ -177,15 +177,6 @@ Genera un caso clínico que respete el siguiente esquema de ejemplo (los nombres
       "Describe hallazgos clave, especialmente en la zona afectada"
     ]
   },
-  "examenes": {
-    "<nombre_examen_1>": {
-      "realizado": true,
-      "resultado": "Resumen breve del resultado"
-    },
-    "<nombre_examen_2>": {
-      "realizado": false
-    }
-  },
   "diagnostico_principal": "Un diagnóstico razonable para el caso",
   "diagnosticos_diferenciales": [
     "Dx 1",
@@ -352,8 +343,12 @@ REGLAS DE DECISIÓN:
 Si eliges "request_exam" DEBES completar el objeto "exam_request" con tu mejor inferencia:
 - "tipo": uno de los tipos disponibles (radiografia, ecografia, electrocardiograma, examen_fisico, resonancia)
 - "clasificacion": región o enfoque (torax, abdominal, extremidades, cardiaca, etc.) si aplica
-- "subclasificacion": hallazgo específico (neumonia, colelitiasis, normal, etc.) o null si no se menciona
-- Si el diagnostico no tiene relación directa con un examen específico, elige el examen con el caso normal.
+- "subclasificacion": IMPORTANTE - Infiere el hallazgo esperado basándote en los síntomas del paciente:
+  * Si el contexto clínico sugiere una patología específica, usa esa patología como subclasificación
+  * Por ejemplo: paciente con tos, fiebre, dolor torácico → radiografía de tórax con subclasificacion "neumonia"
+  * Por ejemplo: paciente con dolor abdominal, náuseas, coluria → ecografía abdominal con subclasificacion "colelitiasis"
+  * Solo usa "normal" si el caso clínico sugiere que el paciente NO tiene ninguna patología
+  * Si no estás seguro de la patología específica, pero sabes que hay algo anormal, usa null
 - Los archivos disponibles son:
 examenes/
 ├── ecografia/
@@ -388,7 +383,11 @@ examenes/
 │   │   ├── ileo/
 │   │   ├── normal/
 │   │   └── obstruccion/
-│   ├── extremidades/
+│   ├── piernas/
+│   │   ├── artritis/
+│   │   ├── fractura/
+│   │   └── normal/
+│   ├── brazos/
 │   │   ├── artritis/
 │   │   ├── fractura/
 │   │   └── normal/
@@ -403,7 +402,8 @@ examenes/
         ├── lesion/
         └── normal/
 
-Si el estudiante solo dice "radiografía" sin detalles, deduce la región más lógica según el caso clínico o usa "general". Si quiere un examen normal, usa "normal" como subclasificación.
+Si el estudiante solo dice "radiografía" sin detalles, deduce la región más lógica según el caso clínico.
+NUNCA asumas que el examen debe ser "normal" - infiere la patología apropiada basándote en los síntomas del paciente.
 
 FORMATO DE RESPUESTA (JSON ESTRICTO):
 {
@@ -428,10 +428,12 @@ IMPORTANTE:
 - Solo "request_exam" si la intención principal es obtener un examen
   `.trim(),
 
-  user: (message: string, conversationContext: string) =>
+  user: (message: string, conversationContext: string, clinicalContext?: string) =>
     `
 Contexto de la conversación (últimos mensajes):
 ${conversationContext}
+
+${clinicalContext ? `\n${clinicalContext}\n` : ''}
 
 Nuevo mensaje del estudiante:
 "${message}"

@@ -30,12 +30,22 @@ export async function processExamRequest(
   conversationContext: string
 ): Promise<ExamResult> {
   try {
+    console.log("\n🔬 [examAgent] Procesando solicitud de examen:");
+    console.log("   Tipo original:", examRequest.tipo);
+    console.log("   Clasificación original:", examRequest.clasificacion || "(no especificada)");
+    console.log("   Subclasificación original:", examRequest.subclasificacion || "(no especificada)");
+
     // Normalize parameters
     const tipoNormalizado = examRequest.tipo.toLowerCase().trim();
     const clasificacionNormalizada =
       examRequest.clasificacion?.toLowerCase().trim() || "";
     const subclasificacionNormalizada =
       examRequest.subclasificacion?.toLowerCase().trim() || "";
+
+    console.log("\n   Valores normalizados:");
+    console.log("   Tipo:", tipoNormalizado);
+    console.log("   Clasificación:", clasificacionNormalizada || "(vacío)");
+    console.log("   Subclasificación:", subclasificacionNormalizada || "(vacío)");
 
     // Find the exam image using centralized function
     const imageUrl = findExamImage(
