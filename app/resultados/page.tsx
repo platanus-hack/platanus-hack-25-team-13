@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaCheckCircle, FaTimesCircle, FaStar, FaChartLine, FaRedo, FaLightbulb } from "react-icons/fa";
 import type { ClinicalCase } from "@/types/case";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 type FeedbackResult = {
   puntajes: {
@@ -54,9 +56,11 @@ type ResultData = {
 export default function ResultadosPage() {
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const data = sessionStorage.getItem("feedbackData");
+    const caseData = sessionStorage.getItem("generatedCase");
     if (!data) {
       router.push("/simulador");
       return;
@@ -65,7 +69,50 @@ export default function ResultadosPage() {
     console.log("📊 Feedback data loaded:", parsedData);
     console.log("📋 Recomendaciones específicas:", parsedData.feedback?.manejo?.recomendaciones_especificas);
     setResultData(parsedData);
-  }, [router]);
+
+    // Save feedback to database
+    if (user && caseData) {
+      const parsedCase = JSON.parse(caseData);
+      const publicId = parsedCase.publicId;
+      const startTime = parsedCase.createdAt || parsedCase.startTime;
+      
+      if (publicId && startTime) {
+        const endTime = new Date();
+        const startTimeDate = new Date(startTime);
+        const tiempoDemora = Math.floor((endTime.getTime() - startTimeDate.getTime()) / 1000); // segundos
+        
+        const promedioGeneral = Object.values(parsedData.feedback.puntajes).reduce(
+          (a: number, b: number) => a + b, 
+          0
+        ) / Object.keys(parsedData.feedback.puntajes).length;
+
+        const diagnosticoFinal = parsedData.feedback.diagnostico.diagnostico_real;
+
+        // Update anamnesis in database
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.access_token) {
+            fetch("/api/update-anamnesis", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                public_id: publicId,
+                calificacion: promedioGeneral,
+                tiempo_demora: tiempoDemora,
+                is_completed: true,
+                diagnostico_final: diagnosticoFinal,
+                feedback_data: parsedData.feedback,
+              }),
+            }).catch((err) => {
+              console.error("Error updating anamnesis:", err);
+            });
+          }
+        });
+      }
+    }
+  }, [router, user]);
 
   if (!resultData) {
     return (
