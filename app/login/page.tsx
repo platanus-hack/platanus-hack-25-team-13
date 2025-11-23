@@ -1,34 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { FaGoogle, FaEnvelope, FaLock, FaStethoscope, FaHeartbeat } from "react-icons/fa";
+import { useCategories } from "@/hooks/useCategories";
+import { FaGoogle, FaEnvelope, FaLock, FaUser, FaHeartbeat } from "react-icons/fa";
 
 export default function LoginPage() {
-  const { login, signup, loginWithGoogle, loading } = useAuth();
+  const { login, signup, loginWithGoogle, user, loading } = useAuth();
+  const { categories, loading: categoriesLoading } = useCategories();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [favoriteCategoryId, setFavoriteCategoryId] = useState<number | undefined>(undefined);
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+
+  // Redirect to home if already authenticated (regardless of profile)
+  useEffect(() => {
+    if (!loading && user) {
+      router.push("/");
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setLoadingAction(true);
 
     try {
-      const { error: authError } = isSignup
-        ? await signup(email, password)
-        : await login(email, password);
-
-      if (authError) {
-        setError(authError.message);
+      if (isSignup) {
+        if (!firstName.trim() || !lastName.trim()) {
+          setError("Por favor completa todos los campos");
+          setLoadingAction(false);
+          return;
+        }
+        const { data, error: authError } = await signup(
+          email,
+          password,
+          firstName.trim(),
+          lastName.trim(),
+          favoriteCategoryId
+        );
+        if (authError) {
+          setError(authError.message);
+        } else if (data && !data.session) {
+          // User created but email confirmation required
+          setSuccessMessage(
+            "¡Cuenta creada exitosamente! Por favor confirma tu email. Te hemos enviado un correo de confirmación."
+          );
+        } else {
+          router.push("/");
+        }
       } else {
-        router.push("/");
+        const { error: authError } = await login(email, password);
+        if (authError) {
+          // Check if it's an email confirmation error
+          if (authError.message?.toLowerCase().includes("email not confirmed") || 
+              authError.message?.toLowerCase().includes("email not verified")) {
+            setSuccessMessage(
+              "Por favor confirma tu email. Te hemos enviado un correo de confirmación."
+            );
+          } else {
+            setError(authError.message);
+          }
+        } else {
+          router.push("/");
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error");
@@ -53,12 +97,15 @@ export default function LoginPage() {
     }
   };
 
-  if (loading) {
+  // Show loading while checking auth or redirecting
+  if (loading || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#1098f7] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-700 text-base font-medium">Cargando...</p>
+          <p className="text-gray-700 text-base font-medium">
+            {user ? "Redirigiendo..." : "Cargando..."}
+          </p>
         </div>
       </div>
     );
@@ -115,6 +162,86 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignup && (
+              <>
+                <div>
+                  <label
+                    htmlFor="firstName"
+                    className="block text-xs font-semibold text-gray-700 mb-1.5"
+                  >
+                    Nombre
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaUser className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <input
+                      id="firstName"
+                      type="text"
+                      value={firstName}
+                      placeholder="Tu nombre"
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1098f7] focus:border-[#1098f7] outline-none transition-all text-gray-800 font-medium text-sm"
+                      required={isSignup}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="lastName"
+                    className="block text-xs font-semibold text-gray-700 mb-1.5"
+                  >
+                    Apellido
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaUser className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <input
+                      id="lastName"
+                      type="text"
+                      value={lastName}
+                      placeholder="Tu apellido"
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1098f7] focus:border-[#1098f7] outline-none transition-all text-gray-800 font-medium text-sm"
+                      required={isSignup}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="favoriteCategory"
+                    className="block text-xs font-semibold text-gray-700 mb-1.5"
+                  >
+                    Categoría Favorita
+                  </label>
+                  <select
+                    id="favoriteCategory"
+                    value={favoriteCategoryId || ""}
+                    onChange={(e) =>
+                      setFavoriteCategoryId(
+                        e.target.value ? parseInt(e.target.value) : undefined
+                      )
+                    }
+                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1098f7] focus:border-[#1098f7] outline-none transition-all text-gray-800 font-medium text-sm"
+                  >
+                    <option value="">Selecciona una categoría (opcional)</option>
+                    {categoriesLoading ? (
+                      <option disabled>Cargando categorías...</option>
+                    ) : (
+                      categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </>
+            )}
+
             <div>
               <label
                 htmlFor="email"
@@ -167,6 +294,12 @@ export default function LoginPage() {
               </div>
             )}
 
+            {successMessage && (
+              <div className="bg-green-50 border-2 border-green-200 text-green-700 px-3 py-2 rounded-lg text-xs font-medium">
+                {successMessage}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loadingAction || loadingGoogle}
@@ -192,6 +325,11 @@ export default function LoginPage() {
               onClick={() => {
                 setIsSignup(!isSignup);
                 setError(null);
+                setSuccessMessage(null);
+                // Reset form fields when switching
+                setFirstName("");
+                setLastName("");
+                setFavoriteCategoryId(undefined);
               }}
               className="text-[#1098f7] hover:text-[#0d7fd6] text-xs font-semibold transition-colors"
             >

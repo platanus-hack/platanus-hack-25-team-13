@@ -3,13 +3,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-interface Profile {
+export interface Profile {
   id: string;
-  email?: string;
-  full_name?: string;
-  avatar_url?: string;
+  first_name?: string;
+  last_name?: string;
+  favorite_category_id?: number;
+  favorite_category?: {
+    id: number;
+    name: string;
+    description?: string;
+  };
+  metadata?: Record<string, unknown>;
   created_at?: string;
-  updated_at?: string;
   [key: string]: unknown;
 }
 
@@ -25,17 +30,48 @@ export function useProfile(userId?: string) {
 
     const loadProfile = async () => {
       try {
-        const { data, error } = await supabase
+        // First get the profile
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", userId)
           .single();
 
-        if (error) {
-          console.error("Error loading profile:", error);
-          setProfile(null);
+        if (profileError) {
+          // If profile doesn't exist, return null (will trigger redirect)
+          if (profileError.code === "PGRST116") {
+            console.log("Profile not found");
+            setProfile(null);
+          } else {
+            console.error("Error loading profile:", {
+              message: profileError.message,
+              details: profileError.details,
+              hint: profileError.hint,
+              code: profileError.code,
+            });
+            setProfile(null);
+          }
         } else {
-          setProfile(data);
+          // If there's a favorite_category_id, fetch the category
+          let favoriteCategory = null;
+          if (profileData.favorite_category_id) {
+            const { data: categoryData, error: categoryError } = await supabase
+              .from("categories")
+              .select("id, name, description")
+              .eq("id", profileData.favorite_category_id)
+              .single();
+
+            if (!categoryError && categoryData) {
+              favoriteCategory = categoryData;
+            }
+          }
+
+          // Combine profile and category data
+          const combinedData = {
+            ...profileData,
+            favorite_category: favoriteCategory,
+          };
+          setProfile(combinedData);
         }
       } catch (error) {
         console.error("Error loading profile:", error);

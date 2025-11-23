@@ -40,7 +40,9 @@ export default function PerfilPage() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold">
-                        {profile?.full_name || user?.email?.split("@")[0] || "Usuario"}
+                        {profile?.first_name && profile?.last_name
+                          ? `${profile.first_name} ${profile.last_name}`
+                          : profile?.first_name || user?.email?.split("@")[0] || "Usuario"}
                       </h2>
                       <p className="text-white/80 text-sm mt-1">
                         {user?.email || "No disponible"}
@@ -51,6 +53,18 @@ export default function PerfilPage() {
 
                 {/* Details */}
                 <div className="grid md:grid-cols-2 gap-6">
+                  {profile?.first_name && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <FaUser className="w-5 h-5 text-[#1098f7]" />
+                        <h3 className="font-semibold text-gray-700">Nombre</h3>
+                      </div>
+                      <p className="text-gray-600">
+                        {profile.first_name} {profile.last_name || ""}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-3 mb-2">
                       <FaEnvelope className="w-5 h-5 text-[#1098f7]" />
@@ -59,15 +73,17 @@ export default function PerfilPage() {
                     <p className="text-gray-600">{user?.email || "No disponible"}</p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <FaUser className="w-5 h-5 text-[#1098f7]" />
-                      <h3 className="font-semibold text-gray-700">ID de Usuario</h3>
+                  {(profile as any)?.favorite_category && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <FaUser className="w-5 h-5 text-[#1098f7]" />
+                        <h3 className="font-semibold text-gray-700">Categoría Favorita</h3>
+                      </div>
+                      <p className="text-gray-600">
+                        {(profile as any).favorite_category?.name || "No seleccionada"}
+                      </p>
                     </div>
-                    <p className="text-gray-600 text-sm font-mono break-all">
-                      {user?.id || "No disponible"}
-                    </p>
-                  </div>
+                  )}
 
                   {profile?.created_at && (
                     <div className="bg-gray-50 rounded-lg p-4">

@@ -9,6 +9,7 @@ interface UserStats {
   correctos: number;
   incorrectos: number;
   ultimaSimulacion?: string;
+  ultimaSimulacionResultado?: "correcto" | "incorrecto" | "sin resultado";
   datosDesempeno: Array<{ dia: string; valor: number }>;
   categoriaFavorita?: string;
 }
@@ -61,14 +62,20 @@ export function useUserStats(anamnesis: Anamnesis[]): UserStats {
     ).length;
 
     // Última simulación
+    const ultimaAnamnesis = anamnesis.length > 0 ? anamnesis[0] : null;
     const ultimaSimulacion =
-      anamnesis.length > 0 && anamnesis[0].created_at
-        ? new Date(anamnesis[0].created_at).toLocaleDateString("es-ES", {
+      ultimaAnamnesis?.created_at
+        ? new Date(ultimaAnamnesis.created_at).toLocaleDateString("es-ES", {
             day: "numeric",
             month: "short",
             year: "numeric",
           })
         : undefined;
+    
+    // Resultado de la última simulación
+    const ultimaSimulacionResultado = ultimaAnamnesis?.feedback_data?.diagnostico?.correcto !== undefined
+      ? (ultimaAnamnesis.feedback_data.diagnostico.correcto ? "correcto" : "incorrecto")
+      : "sin resultado";
 
     // Datos de desempeño (últimos 7 días o todas si hay menos)
     const ultimos7 = anamnesis.slice(0, 7);
@@ -110,6 +117,7 @@ export function useUserStats(anamnesis: Anamnesis[]): UserStats {
       correctos,
       incorrectos: incorrectos,
       ultimaSimulacion,
+      ultimaSimulacionResultado,
       datosDesempeno,
       categoriaFavorita: categoriaFavorita
         ? categoriaFavorita.charAt(0).toUpperCase() + categoriaFavorita.slice(1)

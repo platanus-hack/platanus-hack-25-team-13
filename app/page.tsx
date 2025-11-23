@@ -162,6 +162,33 @@ export default function Home() {
     };
   });
 
+  // Redirect to login only if user is not authenticated
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push("/login");
+      }
+    }
+  }, [user, authLoading, router]);
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff]">
+        <p className="text-gray-700">Cargando...</p>
+      </div>
+    );
+  }
+
+  // Don't render content if not authenticated (redirect will happen in useEffect)
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff]">
+        <p className="text-gray-700">Redirigiendo...</p>
+      </div>
+    );
+  }
+
   return (
     <ProtectedRoute>
       {isLoading && <LoadingScreen />}
@@ -278,17 +305,21 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex-shrink-0">
-                      <h4 className="text-lg font-bold text-[#001c55] mb-0.5">
-                        {profile?.full_name || user?.email?.split("@")[0] || "Usuario"}
+                    <div className="flex-shrink-0 space-y-1">
+                      <h4 className="text-lg font-bold text-[#001c55] mb-1">
+                        {profile?.first_name && profile?.last_name
+                          ? `${profile.first_name} ${profile.last_name}`
+                          : profile?.first_name || user?.email?.split("@")[0] || "Usuario"}
                       </h4>
-                      <p className="text-sm text-[#001c55] text-opacity-70 mb-0.5">
-                        {user?.email || "No disponible"}
-                      </p>
-                      {stats.categoriaFavorita && (
-                        <p className="text-sm text-[#001c55] text-opacity-70">
-                          Especialidad favorita: {stats.categoriaFavorita}
-                        </p>
+                      {profile?.favorite_category_id && (profile as any)?.favorite_category?.name && (
+                        <div className="text-xs text-[#001c55] text-opacity-70">
+                          <span className="font-medium">Categoría favorita:</span> {(profile as any).favorite_category.name}
+                        </div>
+                      )}
+                      {!profile?.first_name && !profile?.last_name && (
+                        <div className="text-xs text-[#001c55] text-opacity-60 italic">
+                          Completa tu perfil para ver más información
+                        </div>
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-1.5 flex-shrink-0">
@@ -320,12 +351,35 @@ export default function Home() {
                       </div>
                     )}
                     <div className="p-1 bg-[#f0f8ff] rounded flex-shrink-0">
-                      <div className="text-xs text-[#001c55] text-opacity-70">
+                      <div className="text-xs text-[#001c55] text-opacity-70 mb-0.5">
                         Última simulación
                       </div>
-                      <div className="text-sm font-bold text-[#1098f7] mt-0.5">
-                        {stats.ultimaSimulacion || "N/A"}
-                      </div>
+                      {stats.ultimaSimulacion ? (
+                        <>
+                          <div className="text-xs font-semibold text-[#001c55] mb-0.5">
+                            {stats.ultimaSimulacion}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {stats.ultimaSimulacionResultado === "correcto" ? (
+                              <>
+                                <FaCheckCircle className="w-3 h-3 text-green-500" />
+                                <span className="text-xs font-bold text-green-600">Correcto</span>
+                              </>
+                            ) : stats.ultimaSimulacionResultado === "incorrecto" ? (
+                              <>
+                                <FaTimesCircle className="w-3 h-3 text-red-500" />
+                                <span className="text-xs font-bold text-red-600">Incorrecto</span>
+                              </>
+                            ) : (
+                              <span className="text-xs text-[#001c55] text-opacity-60">Sin resultado</span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm font-bold text-[#1098f7] mt-0.5">
+                          N/A
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
