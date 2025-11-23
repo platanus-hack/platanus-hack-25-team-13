@@ -381,7 +381,8 @@ export const feedbackPrompts = {
   system: (
     clinicalCase: ClinicalCase,
     conversationText: string,
-    diagnosticoEstudiante: string
+    diagnosticoEstudiante: string,
+    managementPlan?: import("@/types/case").StudentManagementPlan
   ) => {
     const caseJson = JSON.stringify(clinicalCase, null, 2);
 
@@ -401,6 +402,22 @@ ${conversationText}
 ==== DIAGNÓSTICO DEL ESTUDIANTE ====
 ${diagnosticoEstudiante}
 ==== FIN DIAGNÓSTICO ====
+
+${managementPlan ? `
+==== PLAN DE MANEJO PROPUESTO POR EL ESTUDIANTE ====
+${JSON.stringify(managementPlan, null, 2)}
+==== FIN PLAN DE MANEJO ====
+
+El estudiante completó un formulario estructurado con su plan de manejo. Evalúa:
+- Si la decisión de derivación es correcta (requiere_derivacion: ${managementPlan.requiere_derivacion})
+- Si el tipo de derivación es adecuado (tipo_derivacion: ${managementPlan.tipo_derivacion})
+${managementPlan.especialidad_derivacion ? `- Especialidad a derivar: ${managementPlan.especialidad_derivacion}` : ''}
+- Si consideró ingreso a programa APS (ingresa_programa_aps: ${managementPlan.ingresa_programa_aps})
+${managementPlan.programa_aps ? `- Programa propuesto: ${managementPlan.programa_aps}` : ''}
+- Calidad del manejo inicial en CESFAM
+- Si definió metas terapéuticas apropiadas
+- Si propuso plan de seguimiento adecuado
+` : ''}
 
 TU ROL:
 - No generas información nueva.

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
-import type { ClinicalCase, ChatMessage, RequestedExam } from "@/types/case";
+import type { ClinicalCase, ChatMessage, RequestedExam, StudentManagementPlan } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
 import Diagnostico from "../../components/anamnesis/Diagnostico";
@@ -11,9 +12,13 @@ import Feedback from "../../components/anamnesis/Feedback";
 import ChatInput from "../../components/anamnesis/ChatInput";
 import ChatImage from "../../components/anamnesis/ChatImage";
 import Stepper from "../../components/Stepper";
+import ManagementPlanModal from "../../components/ManagementPlanModal";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 
 export default function AnamnesisPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -27,6 +32,17 @@ export default function AnamnesisPage() {
   const [requestedExams, setRequestedExams] = useState<RequestedExam[]>([]);
   const [currentExamIndex, setCurrentExamIndex] = useState<number>(0);
   const [showExamViewer, setShowExamViewer] = useState<boolean>(false);
+  const [caseStartTime, setCaseStartTime] = useState<Date | null>(null);
+  const [publicId, setPublicId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [showManagementModal, setShowManagementModal] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [detectedDiagnosis, setDetectedDiagnosis] = useState<string>("");
+
+  // Set mounted to true when component mounts (client-side only)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -47,6 +63,19 @@ export default function AnamnesisPage() {
           // Guardar initialMessage
           if (parsedCase.initialMessage) {
             setInitialMessage(parsedCase.initialMessage);
+          }
+
+          // Guardar publicId y tiempo de inicio
+          if (parsedCase.publicId) {
+            setPublicId(parsedCase.publicId);
+          }
+          
+          // Guardar tiempo de inicio para calcular duración
+          const startTime = parsedCase.startTime || parsedCase.createdAt;
+          if (startTime) {
+            setCaseStartTime(new Date(startTime));
+          } else {
+            setCaseStartTime(new Date()); // Si no hay, usar ahora
           }
 
           // Capitalizar sexo
@@ -303,8 +332,53 @@ export default function AnamnesisPage() {
         // Check if diagnosis was submitted
         if (data.data.actionTaken === "submit_diagnosis" && data.data.feedback) {
           // Save feedback data and move to feedback step
-          setFeedbackData(data.data.feedback);
+          const feedback = data.data.feedback;
+          setFeedbackData(feedback);
           setCurrentStep(2);
+          
+          // Save to Supabase
+          if (user && publicId && caseStartTime) {
+            const endTime = new Date();
+            const tiempoDemora = Math.floor((endTime.getTime() - caseStartTime.getTime()) / 1000); // segundos
+            
+            // Calcular calificación promedio
+            const promedioGeneral = feedback.puntajes
+              ? Object.values(feedback.puntajes as Record<string, number>).reduce((a: number, b: number) => a + b, 0) /
+                Object.keys(feedback.puntajes).length
+              : 0;
+
+            // Obtener diagnóstico final
+            const diagnosticoFinal = feedback.diagnostico?.diagnostico_real || "";
+
+            // Update anamnesis in database
+            supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session?.access_token) {
+                fetch("/api/update-anamnesis", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    public_id: publicId,
+                    calificacion: promedioGeneral,
+                    tiempo_demora: tiempoDemora,
+                    is_completed: true,
+                    diagnostico_final: diagnosticoFinal,
+                    feedback_data: feedback,
+                  }),
+                }).then((res) => {
+                  if (res.ok) {
+                    console.log("Anamnesis actualizada exitosamente en Supabase");
+                  } else {
+                    console.error("Error actualizando anamnesis:", res.statusText);
+                  }
+                }).catch((err) => {
+                  console.error("Error updating anamnesis:", err);
+                });
+              }
+            });
+          }
           return;
         }
       } else {
@@ -356,6 +430,44 @@ export default function AnamnesisPage() {
     const classification = exam.clasificacion ? ` - ${exam.clasificacion}` : "";
     return `${type}${classification}`;
   };
+  async function handleSubmitManagementPlan(planData: StudentManagementPlan) {
+    if (!simulationId) return;
+
+    setFeedbackLoading(true);
+    setShowManagementModal(false);
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          simulationId,
+          managementPlan: planData,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error generando feedback");
+      }
+
+      const data = await res.json();
+      
+      if (data.success && data.feedback) {
+        // Save feedback and move to feedback step
+        setFeedbackData(data.feedback);
+        setCurrentStep(2);
+      } else {
+        throw new Error("No se recibió feedback del servidor");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Error enviando plan de manejo");
+      setShowManagementModal(true); // Reabrir el modal en caso de error
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }
 
   return (
     <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
@@ -483,7 +595,20 @@ export default function AnamnesisPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Plan de Manejo - Renderizado en un portal */}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <ManagementPlanModal
+          isOpen={showManagementModal}
+          onClose={() => setShowManagementModal(false)}
+          onSubmit={handleSubmitManagementPlan}
+          isAPS={clinicalCase?.especialidad === "aps"}
+          initialDiagnosis={detectedDiagnosis}
+        />,
+        document.body
+      )}
     </div>
   );
 }
+
 

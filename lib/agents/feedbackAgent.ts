@@ -1,6 +1,6 @@
 import { createChatCompletion } from "@/lib/openai";
 import { feedbackPrompts } from "@/lib/prompts";
-import type { ClinicalCase, ChatMessage, FeedbackResult } from "@/types/case";
+import type { ClinicalCase, ChatMessage, FeedbackResult, StudentManagementPlan } from "@/types/case";
 
 /**
  * Feedback Agent
@@ -28,7 +28,8 @@ function cleanArrayReferences(arr: string[]): string[] {
 export async function generateFeedback(
   clinicalCase: ClinicalCase,
   chatHistory: ChatMessage[],
-  studentDiagnosis: string
+  studentDiagnosis: string,
+  managementPlan?: StudentManagementPlan
 ): Promise<FeedbackResult> {
   // Build conversation transcript
   const conversationText = chatHistory
@@ -41,7 +42,8 @@ export async function generateFeedback(
   const systemPrompt = feedbackPrompts.system(
     clinicalCase,
     conversationText,
-    studentDiagnosis
+    studentDiagnosis,
+    managementPlan
   );
   const userPrompt = feedbackPrompts.user();
 
