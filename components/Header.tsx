@@ -11,7 +11,7 @@ export default function Header() {
 
   const navItems = [
     { path: "/", label: "Inicio", icon: FaHome },
-    { path: "/configuracion", label: "Configuración", icon: FaCog },
+    ...(user ? [{ path: "/configuracion", label: "Configuración", icon: FaCog }] : []),
   ];
 
   const handleLogout = async () => {
