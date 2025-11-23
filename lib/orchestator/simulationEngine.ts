@@ -295,6 +295,12 @@ ${caseGenerationPrompts.user()}`;
             break;
           }
 
+          // Debug: Log full clinical case to verify diagnosis exists
+          console.log("🔍 [simulationEngine] Caso clínico completo:");
+          console.log("   ID:", simulation.clinicalCase.id);
+          console.log("   Especialidad:", simulation.clinicalCase.especialidad);
+          console.log("   Diagnóstico principal:", simulation.clinicalCase.diagnostico_principal);
+
           // Build conversation context for the exam agent
           const recentMessages = simulation.chatHistory.slice(-5);
           const conversationContext = recentMessages
@@ -306,10 +312,14 @@ ${caseGenerationPrompts.user()}`;
             )
             .join("\n");
 
-          // Process the exam request
+          // Process the exam request (pass diagnosis for intelligent fallback)
+          const diagnostico = simulation.clinicalCase?.diagnostico_principal;
+          console.log("📋 [simulationEngine] Pasando diagnóstico:", diagnostico || "(no disponible)");
+
           examResult = await processExamRequest(
             decision.examRequest,
             conversationContext,
+            diagnostico
           );
 
           // Generate patient response (patient presents the exam)

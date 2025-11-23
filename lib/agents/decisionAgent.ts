@@ -49,16 +49,35 @@ export async function decideAction(
   // Build clinical context (without revealing diagnosis)
   let clinicalContext = "";
   if (clinicalCase) {
+    const signosVitales = clinicalCase.examen_fisico?.signos_vitales;
+    let vitalesTexto = "";
+    if (signosVitales) {
+      vitalesTexto = `
+- Signos vitales:
+  * Temperatura: ${signosVitales.temperatura}°C
+  * Frecuencia cardíaca: ${signosVitales.frecuencia_cardiaca} lpm
+  * Presión arterial: ${signosVitales.presion_arterial}
+  * Frecuencia respiratoria: ${signosVitales.frecuencia_respiratoria} rpm
+  * Saturación O2: ${signosVitales.saturacion_o2}%`;
+    }
+
     clinicalContext = `
 CONTEXTO DEL CASO CLÍNICO (para inferir exámenes apropiados):
 - Síntomas: ${clinicalCase.sintomas?.descripcion_general || "No especificados"}
 - Motivo de consulta: ${clinicalCase.motivo_consulta || "No especificado"}
+${vitalesTexto}
 - Hallazgos del examen físico: ${clinicalCase.examen_fisico?.hallazgos_relevantes?.join(", ") || "No especificados"}
 
-IMPORTANTE: Usa esta información para inferir qué tipo de hallazgos esperarías en los exámenes solicitados.
-Si el paciente tiene síntomas que sugieren una condición específica (ej: dolor torácico, tos, fiebre → posible neumonía),
-debes especificar esa subclasificación en el exam_request (ej: subclasificacion: "neumonia").
-NO uses "normal" como subclasificación a menos que el caso sea claramente normal.
+IMPORTANTE: Usa esta información (ESPECIALMENTE SIGNOS VITALES) para inferir qué hallazgos esperarías en los exámenes:
+- Para electrocardiogramas: La frecuencia cardíaca es CRÍTICA
+  * FC < 60 → bradicardia
+  * FC > 100 → taquicardia
+  * Palpitaciones + irregular → fibrilacion_auricular
+  * Dolor torácico intenso → infarto
+- Para radiografías: Síntomas respiratorios (tos, fiebre) → neumonía
+- Para ecografías abdominales: Dolor en hipocondrio derecho → colelitiasis
+
+NUNCA uses "normal" a menos que claramente no haya patología. SIEMPRE especifica subclasificación basándote en los síntomas.
 `.trim();
   }
 

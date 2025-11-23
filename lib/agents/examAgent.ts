@@ -27,13 +27,15 @@ export interface ExamResult {
  */
 export async function processExamRequest(
   examRequest: ExamRequest,
-  conversationContext: string
+  conversationContext: string,
+  diagnosticoPrincipal?: string
 ): Promise<ExamResult> {
   try {
     console.log("\n🔬 [examAgent] Procesando solicitud de examen:");
     console.log("   Tipo original:", examRequest.tipo);
     console.log("   Clasificación original:", examRequest.clasificacion || "(no especificada)");
     console.log("   Subclasificación original:", examRequest.subclasificacion || "(no especificada)");
+    console.log("   Diagnóstico principal:", diagnosticoPrincipal || "(no especificado)");
 
     // Normalize parameters
     const tipoNormalizado = examRequest.tipo.toLowerCase().trim();
@@ -51,7 +53,8 @@ export async function processExamRequest(
     const imageUrl = findExamImage(
       tipoNormalizado,
       clasificacionNormalizada,
-      subclasificacionNormalizada
+      subclasificacionNormalizada,
+      diagnosticoPrincipal
     );
 
     // If image found, return success

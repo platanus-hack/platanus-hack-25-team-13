@@ -343,12 +343,27 @@ REGLAS DE DECISIÓN:
 Si eliges "request_exam" DEBES completar el objeto "exam_request" con tu mejor inferencia:
 - "tipo": uno de los tipos disponibles (radiografia, ecografia, electrocardiograma, examen_fisico, resonancia)
 - "clasificacion": región o enfoque (torax, abdominal, extremidades, cardiaca, etc.) si aplica
-- "subclasificacion": IMPORTANTE - Infiere el hallazgo esperado basándote en los síntomas del paciente:
-  * Si el contexto clínico sugiere una patología específica, usa esa patología como subclasificación
-  * Por ejemplo: paciente con tos, fiebre, dolor torácico → radiografía de tórax con subclasificacion "neumonia"
-  * Por ejemplo: paciente con dolor abdominal, náuseas, coluria → ecografía abdominal con subclasificacion "colelitiasis"
-  * Solo usa "normal" si el caso clínico sugiere que el paciente NO tiene ninguna patología
-  * Si no estás seguro de la patología específica, pero sabes que hay algo anormal, usa null
+- "subclasificacion": CRÍTICO - Infiere el hallazgo esperado basándote SIEMPRE en los síntomas del paciente:
+
+  * RADIOGRAFÍAS:
+    - Tos + fiebre + dolor torácico → "neumonia"
+    - Trauma en extremidad + dolor → "fractura"
+    - Dolor abdominal + vómitos → "obstruccion" o "ileo"
+
+  * ECOGRAFÍAS:
+    - Dolor en hipocondrio derecho + náuseas → "colelitiasis"
+    - Dolor pélvico + masa → "quiste_ovarico"
+
+  * ELECTROCARDIOGRAMAS (IMPORTANTE):
+    - Palpitaciones + frecuencia irregular → "fibrilacion_auricular"
+    - Dolor torácico + elevación ST → "infarto"
+    - Frecuencia cardíaca < 60 lpm + mareos → "bradicardia"
+    - Frecuencia cardíaca > 100 lpm + palpitaciones → "taquicardia"
+    - Si NO hay síntomas cardíacos específicos → "normal"
+
+  * NUNCA dejes la subclasificación vacía sin analizar los síntomas
+  * Solo usa "normal" si el paciente claramente NO tiene patología
+  * La subclasificación debe reflejar el diagnóstico probable del caso
 - Los archivos disponibles son:
 examenes/
 ├── ecografia/

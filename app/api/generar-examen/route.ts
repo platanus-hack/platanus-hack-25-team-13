@@ -4,16 +4,17 @@ import { findExamImage } from "@/lib/exams";
 /**
  * Generate Exam Image API
  * Busca imágenes de exámenes médicos en la estructura de carpetas
- * 
+ *
  * Parámetros:
  * - tipo: tipo de examen (radiografia, ecografia, laboratorio, electrocardiograma, tomografia, resonancia, examen_fisico)
  * - clasificacion: clasificación del examen (torax, abdomen, extremidades, abdominal, pelvica, cardiaca, etc.)
  * - subclasificacion: subclasificación (normal, neumonia, colelitiasis, etc.)
+ * - diagnostico (opcional): diagnóstico principal para inferir subclasificación si no se especifica
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { tipo, clasificacion, subclasificacion } = body;
+    const { tipo, clasificacion, subclasificacion, diagnostico } = body;
 
     if (!tipo) {
       return NextResponse.json(
@@ -22,11 +23,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Buscar imagen usando función centralizada
+    // Buscar imagen usando función centralizada (con diagnóstico opcional como fallback)
     const imagePath = findExamImage(
       tipo,
       clasificacion || "",
-      subclasificacion || ""
+      subclasificacion || "",
+      diagnostico
     );
 
     if (imagePath) {
