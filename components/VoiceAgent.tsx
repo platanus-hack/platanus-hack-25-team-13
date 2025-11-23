@@ -282,7 +282,6 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
           if (feedback && onFeedback) {
             console.log('📊 Feedback generado:', feedback);
             // Esperar un momento después del audio para mostrar el feedback
-          
               onFeedback(feedback);
           
           } else {

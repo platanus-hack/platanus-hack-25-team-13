@@ -67,21 +67,15 @@ export function useVoiceRecorder({
       // Verificar permisos del micrófono primero
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('✅ Permisos del micrófono obtenidos');
         stream.getTracks().forEach(track => track.stop());
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (micError) {
-        console.error('❌ Permisos del micrófono denegados');
         setState(prev => ({
           ...prev,
           error: 'Permisos del micrófono denegados. Por favor, permite el acceso al micrófono.'
         }));
         throw new Error('Microphone permission denied');
       }
-
-      console.log('📞 Iniciando conexión Scribe con token...');
-
-      // Crear promesa para esperar la conexión
       const connectionPromise = new Promise<RealtimeConnection>((resolve, reject) => {
         const connection = Scribe.connect({
           token,
@@ -99,15 +93,12 @@ export function useVoiceRecorder({
 
         });
 
-        // Timeout de 10 segundos para la conexión
         const timeout = setTimeout(() => {
           reject(new Error('Timeout esperando conexión'));
         }, 10000);
 
-        // Esperar a que la sesión inicie
         connection.on(RealtimeEvents.SESSION_STARTED, () => {
           clearTimeout(timeout);
-          console.log('✅ SESSION_STARTED - Sesión iniciada');
           setState(prev => ({ ...prev, isConnected: true, error: null }));
           resolve(connection);
         });
@@ -116,7 +107,6 @@ export function useVoiceRecorder({
         connection.on(RealtimeEvents.AUTH_ERROR, (...args: unknown[]) => {
           clearTimeout(timeout);
           const error = args[0] as AuthErrorData;
-          console.error('❌ AUTH_ERROR:', error);
           reject(new Error(`Error de autenticación: ${error.error || 'Token inválido'}`));
         });
 
@@ -124,7 +114,6 @@ export function useVoiceRecorder({
           clearTimeout(timeout);
           const closeEvent = args[0] as { code?: number; reason?: string };
           if (closeEvent?.code === 1006) {
-            console.error('❌ Conexión cerrada anormalmente (código 1006)');
             reject(new Error('Conexión cerrada inesperadamente'));
           }
         });
@@ -133,11 +122,10 @@ export function useVoiceRecorder({
       const connection = await connectionPromise;
       connectionRef.current = connection;
 
-      // Agregar listeners para transcripciones y otros eventos
       connection.on(RealtimeEvents.PARTIAL_TRANSCRIPT, (...args: unknown[]) => {
         const data = args[0] as PartialTranscriptData;
         if (recordingStateRef.current && data.text) {
-          console.log('📝 Transcripción parcial:', data.text);
+          console.log('[DEBUG] Transcripción parcial:', data.text);
           setState(prev => ({
             ...prev,
             partialTranscript: data.text || ''
@@ -148,17 +136,11 @@ export function useVoiceRecorder({
       connection.on(RealtimeEvents.COMMITTED_TRANSCRIPT, (...args: unknown[]) => {
 
         const data = args[0] as CommittedTranscriptData;
-        console.log('✅ Transcripción confirmada (VAD):', data.text);
-
-        // Con VAD, solo procesamos si está en modo de escucha activa
+        console.log('[DEBUG] Transcripción confirmada (VAD):', data.text);
         if (!recordingStateRef.current) {
-          console.log('⏭️ Ignorando transcripción - no estamos en modo escucha');
           return;
         }
-
-        // Ignorar transcripciones vacías
         if (!data.text || data.text.trim() === '') {
-          console.log('⏭️ Ignorando transcripción vacía');
           return;
         }
 
@@ -177,7 +159,6 @@ export function useVoiceRecorder({
 
       connection.on(RealtimeEvents.ERROR, (...args: unknown[]) => {
         const error = args[0] as ErrorData;
-        console.error('❌ ERROR evento:', error);
         setState(prev => ({
           ...prev,
           error: error.message || 'Error desconocido',
@@ -188,7 +169,6 @@ export function useVoiceRecorder({
 
       connection.on(RealtimeEvents.AUTH_ERROR, (...args: unknown[]) => {
         const error = args[0] as AuthErrorData;
-        console.error('❌ AUTH_ERROR:', error);
         setState(prev => ({
           ...prev,
           error: `Error de autenticación: ${error.error || 'Token inválido'}`,
@@ -199,12 +179,10 @@ export function useVoiceRecorder({
 
       connection.on(RealtimeEvents.CLOSE, (...args: unknown[]) => {
         const closeEvent = args[0] as { code?: number; reason?: string };
-        console.warn('⚠️ CLOSE evento:', closeEvent);
 
         recordingStateRef.current = false;
 
         if (closeEvent?.code === 1006) {
-          console.error('❌ Conexión cerrada anormalmente (código 1006)');
           setState(prev => ({
             ...prev,
             isConnected: false,
@@ -212,7 +190,6 @@ export function useVoiceRecorder({
             error: 'Conexión cerrada inesperadamente. Verifica token y permisos.'
           }));
         } else {
-          console.log('✅ Conexión cerrada normalmente');
           setState(prev => ({
             ...prev,
             isConnected: false,
@@ -226,7 +203,7 @@ export function useVoiceRecorder({
         ...prev, 
         error: error instanceof Error ? error.message : 'Error de conexión' 
       }));
-      throw error; // Propagar el error para que el retry lo maneje
+      throw error;
     }
   }, [token, languageCode, modelId]);
 
@@ -244,17 +221,10 @@ export function useVoiceRecorder({
         connectionRef.current = null;
       }
     };
-  }, []); // Solo ejecutar al desmontar, no cuando cambia el token
+  }, []);
 
   const startRecording = useCallback(() => {
-
-    console.log('🎙️ Activando modo escucha (VAD automático)');
-
     if (!state.isConnected || state.isRecording) {
-      console.warn('⚠️ No se puede activar escucha:', {
-        isConnected: state.isConnected,
-        isRecording: state.isRecording
-      });
       return;
     }
 
@@ -265,24 +235,18 @@ export function useVoiceRecorder({
       partialTranscript: '',
       error: null
     }));
-    console.log('✅ Modo escucha activado - VAD detectará automáticamente cuando hables');
   }, [state.isConnected, state.isRecording]);
 
   // Desactivar modo escucha (pausar VAD)
   const stopRecording = useCallback(() => {
-    console.log('🛑 Desactivando modo escucha');
-
     if (!state.isRecording) {
-      console.warn('⚠️ Modo escucha ya está desactivado');
       return;
     }
 
     recordingStateRef.current = false;
     setState(prev => ({ ...prev, isRecording: false, partialTranscript: '' }));
-    console.log("✅ Modo escucha desactivado - ya no se procesarán transcripciones");
   }, [state.isRecording]);
 
-  // Desconectar WebSocket
   const disconnect = useCallback(() => {
     if (connectionRef.current) {
       recordingStateRef.current = false;
