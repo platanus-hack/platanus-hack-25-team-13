@@ -15,7 +15,8 @@ import type { ClinicalCase } from "@/types/case";
 export interface CaseCreatorOptions {
   difficulty?: "easy" | "medium" | "hard";
   specialty?: string;
-  apsSubcategoria?: string;
+  subcategory?: string; // Subcategory hint for variety
+  apsSubcategoria?: string; // Alias for subcategory (backward compatibility)
   useAssistant?: boolean; // Si es true, usa Assistant API
 }
 
@@ -27,7 +28,8 @@ export async function generateClinicalCase(
 ): Promise<ClinicalCase> {
   const difficulty = options.difficulty || "medium";
   const specialty = options.specialty || "medicina_interna";
-  const apsSubcategoria = options.apsSubcategoria;
+  // Support both subcategory and apsSubcategoria for backward compatibility
+  const subcategory = options.subcategory || options.apsSubcategoria;
 
   // Usar Assistant API si está configurado y useAssistant no es false
   const shouldUseAssistant =
@@ -35,9 +37,9 @@ export async function generateClinicalCase(
     process.env.OPENAI_ASSISTANT_ID;
 
   if (shouldUseAssistant) {
-    return generateCaseWithAssistantAPI(specialty, difficulty, apsSubcategoria);
+    return generateCaseWithAssistantAPI(specialty, difficulty, subcategory);
   } else {
-    return generateCaseWithChatCompletion(specialty, difficulty, apsSubcategoria);
+    return generateCaseWithChatCompletion(specialty, difficulty, subcategory);
   }
 }
 
@@ -48,15 +50,15 @@ export async function generateClinicalCase(
 async function generateCaseWithAssistantAPI(
   specialty: string,
   difficulty: "easy" | "medium" | "hard",
-  apsSubcategoria?: string
+  subcategory?: string
 ): Promise<ClinicalCase> {
   try {
-    console.log("🤖 Generando caso con Assistant API (con RAG)...");
+    console.log(`🤖 Generando caso con Assistant API (con RAG)${subcategory ? ` - ${subcategory}` : ''}...`);
 
     const response = await generateCaseWithAssistant(
       specialty,
       difficulty,
-      apsSubcategoria
+      subcategory
     );
 
     // Parsear la respuesta JSON
@@ -69,7 +71,7 @@ async function generateCaseWithAssistantAPI(
 
     // Fallback a chat completion si Assistant falla
     console.log("⚠️  Fallback a Chat Completion...");
-    return generateCaseWithChatCompletion(specialty, difficulty, apsSubcategoria);
+    return generateCaseWithChatCompletion(specialty, difficulty, subcategory);
   }
 }
 
@@ -80,20 +82,34 @@ async function generateCaseWithAssistantAPI(
 async function generateCaseWithChatCompletion(
   specialty: string,
   difficulty: "easy" | "medium" | "hard",
-  apsSubcategoria?: string
+  subcategory?: string
 ): Promise<ClinicalCase> {
   const { system, user } = caseGenerationPrompts;
 
   try {
-    console.log("💬 Generando caso con Chat Completion...");
+    console.log(`💬 Generando caso con Chat Completion${subcategory ? ` - ${subcategory}` : ''}...`);
+
+    // Build system prompt with subcategory hint
+    const systemPrompt = system(specialty, difficulty, subcategory);
+    
+    // Add random seed for extra variety
+    const varietySeed = `\n\n🎲 Seed de variación: ${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    
+    // Add subcategory hint if provided
+    const subcategoryHint = subcategory 
+      ? `\n\n💡 ENFÓCATE EN ESTA CATEGORÍA: ${subcategory.toUpperCase()}\nGenera un caso específico de esta categoría, evita otras categorías.`
+      : '';
 
     const response = await createChatCompletion(
       [
-        { role: "system", content: system(specialty, difficulty, apsSubcategoria) },
+        { 
+          role: "system", 
+          content: systemPrompt + varietySeed + subcategoryHint 
+        },
         { role: "user", content: user() as string },
       ],
       {
-        temperature: 0.8,
+        temperature: 1.0, // High temperature for maximum variety
         maxTokens: 2500,
         responseFormat: { type: "json_object" },
       }
