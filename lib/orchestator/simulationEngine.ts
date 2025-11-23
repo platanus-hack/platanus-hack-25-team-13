@@ -256,9 +256,11 @@ ${caseGenerationPrompts.user()}`;
       simulation.chatHistory.push(userMessage);
 
       // Step 2: Let the Decision Agent analyze and decide
+      // Pass clinical case (without diagnosis) to help infer appropriate exam subclassifications
       const decision: DecisionResult = await decideAction(
         message,
         simulation.chatHistory,
+        simulation.clinicalCase
       );
 
       let response: string | undefined;

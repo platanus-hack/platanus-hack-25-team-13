@@ -508,7 +508,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
 
   const handleFinalize = () => {
     sessionStorage.removeItem('feedbackData');
-    router.push('/');
+    router.push('/dashboard');
   };
 
   return (

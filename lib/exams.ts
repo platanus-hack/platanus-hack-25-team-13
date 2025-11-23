@@ -64,6 +64,11 @@ export function findExamImage(
   const clasificacionNorm = clasificacion?.toLowerCase().trim() || "";
   const subclasificacionNorm = subclasificacion?.toLowerCase().trim() || "";
 
+  console.log("🔍 [findExamImage] Búsqueda de examen:");
+  console.log("   Tipo:", tipoNorm);
+  console.log("   Clasificación:", clasificacionNorm || "(vacío)");
+  console.log("   Subclasificación:", subclasificacionNorm || "(vacío)");
+
   // Score each available image based on match quality
   const scored = availableExams.map((imagePath) => {
     const relativePath = imagePath.replace(
@@ -73,23 +78,28 @@ export function findExamImage(
     const parts = relativePath.toLowerCase().split(/[\\\/]/);
 
     let score = 0;
+    const scoreDetails: string[] = [];
 
     // Match tipo (most important)
     if (parts[0] === tipoNorm) {
       score += 100;
+      scoreDetails.push("tipo exacto (+100)");
     } else if (parts[0].includes(tipoNorm) || tipoNorm.includes(parts[0])) {
       score += 50;
+      scoreDetails.push("tipo parcial (+50)");
     }
 
     // Match clasificacion (if provided)
     if (clasificacionNorm && parts.length > 1) {
       if (parts[1] === clasificacionNorm) {
         score += 50;
+        scoreDetails.push("clasificación exacta (+50)");
       } else if (
         parts[1].includes(clasificacionNorm) ||
         clasificacionNorm.includes(parts[1])
       ) {
         score += 25;
+        scoreDetails.push("clasificación parcial (+25)");
       }
     }
 
@@ -97,26 +107,32 @@ export function findExamImage(
     if (subclasificacionNorm && parts.length > 2) {
       if (parts[2] === subclasificacionNorm) {
         score += 30;
+        scoreDetails.push("subclasificación exacta (+30)");
       } else if (
         parts[2].includes(subclasificacionNorm) ||
         subclasificacionNorm.includes(parts[2])
       ) {
         score += 15;
+        scoreDetails.push("subclasificación parcial (+15)");
       }
-    } else if (
-      !subclasificacionNorm &&
-      parts.length > 2 &&
-      parts[2] === "normal"
-    ) {
-      // Prefer "normal" if no subclasificacion specified
-      score += 20;
     }
+    // NOTE: Removed automatic preference for "normal" images when subclasificacion is not specified
+    // The decision agent should explicitly specify "normal" if needed, or better yet,
+    // infer the appropriate subclasificacion based on the clinical case
 
-    return { imagePath, score };
+    return { imagePath, relativePath, parts, score, scoreDetails };
   });
 
   // Sort by score (highest first)
   scored.sort((a, b) => b.score - a.score);
+
+  // Log top 5 results
+  console.log("\n📊 [findExamImage] Top 5 resultados:");
+  scored.slice(0, 5).forEach((item, idx) => {
+    console.log(`   ${idx + 1}. [Score: ${item.score}] ${item.relativePath}`);
+    console.log(`      Path parts: [${item.parts.join(", ")}]`);
+    console.log(`      Detalles: ${item.scoreDetails.join(", ")}`);
+  });
 
   // Return the best match if score is reasonable
   if (scored.length > 0 && scored[0].score >= 100) {
@@ -124,9 +140,12 @@ export function findExamImage(
     const publicPath = scored[0].imagePath
       .replace(/^.*[\\\/]public/, "")
       .replace(/\\/g, "/");
+    console.log(`\n✅ [findExamImage] Imagen seleccionada: ${publicPath}`);
+    console.log(`   Score final: ${scored[0].score}\n`);
     return publicPath;
   }
 
+  console.log("\n❌ [findExamImage] No se encontró imagen con score suficiente\n");
   return null;
 }
 
