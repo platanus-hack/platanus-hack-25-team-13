@@ -119,7 +119,7 @@ export default function VoiceAgentPage() {
                     key={specialty.value}
                     onClick={() => setSelectedSpecialty(specialty.value)}
                     className={`
-                      group p-5 rounded-xl border transition-all duration-200 text-left
+                      group p-5 rounded-xl border transition-all duration-200 text-left cursor-pointer
                       ${
                         selectedSpecialty === specialty.value
                           ? "border-[#1098f7] bg-[#1098f7]/5 shadow-sm"
@@ -160,7 +160,7 @@ export default function VoiceAgentPage() {
                     key={difficulty.value}
                     onClick={() => setSelectedDifficulty(difficulty.value)}
                     className={`
-                      w-full p-4 rounded-xl border transition-all duration-200 text-left
+                      w-full p-4 rounded-xl border transition-all duration-200 text-left cursor-pointer
                       ${
                         selectedDifficulty === difficulty.value
                           ? "border-[#1098f7] bg-[#1098f7]/5 shadow-sm"
@@ -209,7 +209,7 @@ export default function VoiceAgentPage() {
                 ${
                   loading
                     ? "bg-[#00072d]/20 text-[#00072d]/40 cursor-not-allowed"
-                    : "bg-[#1098f7] text-white hover:bg-[#0d7ed9] hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+                    : "bg-[#1098f7] text-white hover:bg-[#0d7ed9] hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 }
               `}
             >
@@ -241,7 +241,7 @@ export default function VoiceAgentPage() {
                 setCaseData(null);
                 setStep("selection");
               }}
-              className="px-4 py-2 text-[#00072d]/60 hover:text-[#00072d] text-sm transition-colors duration-200 font-medium"
+              className="px-4 py-2 text-[#00072d]/60 hover:text-[#00072d] text-sm transition-colors duration-200 font-medium cursor-pointer"
             >
               ← Volver
             </button>
@@ -326,7 +326,7 @@ export default function VoiceAgentPage() {
                 setClinicalCase(null);
                 setStep("selection");
               }}
-              className="px-4 py-2 text-[#00072d]/60 hover:text-[#00072d] text-sm transition-colors duration-200 font-medium"
+              className="px-4 py-2 text-[#00072d]/60 hover:text-[#00072d] text-sm transition-colors duration-200 font-medium cursor-pointer"
             >
               ← Nueva Simulación
             </button>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaStethoscope, FaGraduationCap, FaChartLine, FaUserMd } from "react-icons/fa";
+import { FaStethoscope, FaGraduationCap, FaChartLine, FaUserMd, FaMicrophone } from "react-icons/fa";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -91,7 +91,7 @@ export default function LandingPage() {
               </div>
 
               {/* Botón de Comenzar - Siempre visible */}
-              <div className="pt-4 pb-12">
+              <div className="pt-4 pb-4">
                 <button
                   onClick={handleComenzarSimulacion}
                   disabled={!nivelAtencion || isLoading}
@@ -112,6 +112,17 @@ export default function LandingPage() {
                       Comenzar Simulación
                     </>
                   )}
+                </button>
+              </div>
+
+              {/* Botón de Versión de Voz */}
+              <div className="pb-12">
+                <button
+                  onClick={() => router.push("/voice-agent")}
+                  className="w-full py-3 rounded-xl font-semibold text-base transition-all duration-200 flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 hover:scale-[1.02] active:scale-[0.98] text-white cursor-pointer shadow-md hover:shadow-lg"
+                >
+                  <FaMicrophone className="w-5 h-5" />
+                  Prueba la versión con voz
                 </button>
               </div>
             </div>

@@ -15,7 +15,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/landing");
+    router.push("/");
   };
 
   return (
@@ -40,13 +40,13 @@ export default function Navbar() {
           {!user ? (
             <>
               <button
-                onClick={() => router.push("/landing#features")}
+                onClick={() => router.push("/#features")}
                 className="hidden md:block text-white hover:text-[#001c55] font-medium transition-colors duration-200 hover:bg-white/10 px-3 py-2 rounded-lg cursor-pointer"
               >
                 Características
               </button>
               <button
-                onClick={() => router.push("/landing#about")}
+                onClick={() => router.push("/#about")}
                 className="hidden md:block text-white hover:text-[#001c55] font-medium transition-colors duration-200 hover:bg-white/10 px-3 py-2 rounded-lg cursor-pointer"
               >
                 Acerca de
