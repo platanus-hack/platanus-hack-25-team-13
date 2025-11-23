@@ -27,14 +27,14 @@ export default function VoiceAgentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_interna");
+  const [selectedSpecialty, setSelectedSpecialty] = useState("aps");
   const [selectedDifficulty, setSelectedDifficulty] = useState<"facil" | "medio" | "dificil">("medio");
 
   const specialties = [
-    { value: "medicina_interna", label: "Medicina Interna", icon: "🩺" },
-    { value: "pediatria", label: "Pediatría", icon: "👶" },
-    { value: "cardiologia", label: "Cardiología", icon: "❤️" },
-    { value: "neurologia", label: "Neurología", icon: "🧠" },
+    { value: "aps", label: "APS (CESFAM)", icon: "🏥", description: "Con RAG usando guías clínicas chilenas" },
+    { value: "urgencia", label: "Urgencia", icon: "🚨", description: "Servicio de Urgencias" },
+    { value: "hospitalizacion", label: "Hospitalización", icon: "🏨", description: "Medicina Interna" },
+    { value: "otro", label: "Otro", icon: "🔧", description: "Pediatría / Especialidades" },
   ];
 
   const difficulties = [
@@ -111,7 +111,7 @@ export default function VoiceAgentPage() {
             {/* Especialidad */}
             <div className="mb-8">
               <label className="block text-[#00072d]/50 text-xs uppercase tracking-wide font-medium mb-4">
-                Especialidad Médica
+                Nivel de Atención
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {specialties.map((specialty) => (
@@ -127,7 +127,7 @@ export default function VoiceAgentPage() {
                       }
                     `}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-2">
                       <div className={`
                         text-2xl transition-transform duration-200
                         ${selectedSpecialty === specialty.value ? 'scale-110' : 'group-hover:scale-105'}
@@ -140,6 +140,9 @@ export default function VoiceAgentPage() {
                       `}>
                         {specialty.label}
                       </div>
+                    </div>
+                    <div className="text-[#00072d]/50 text-xs pl-9">
+                      {specialty.description}
                     </div>
                   </button>
                 ))}
