@@ -32,6 +32,14 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
   const isProcessingRef = useRef(false);
   const hasConnectedRef = useRef(false);
 
+  // Determinar voiceId según el sexo del paciente
+  // Voces de Eleven Labs:
+  // - George (masculina): "JBFqnCBsd6RMkjVDRZzb" - voz conversacional masculina en español
+  // - Matilda (femenina): "XrExE9yKIg1WjnnlVkGX" - voz conversacional femenina en español
+  const voiceId = caseInfo.patient.sexo.toLowerCase() === 'femenino'
+    ? 'XrExE9yKIg1WjnnlVkGX' // Matilda - voz femenina
+    : 'JBFqnCBsd6RMkjVDRZzb'; // George - voz masculina (default)
+
   const recorder = useVoiceRecorder({
     token,
     languageCode: "es",
@@ -70,10 +78,11 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      // const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY!;
+
+      // Incluir voiceId basado en el sexo del paciente
       const res = await fetch(
         `${supabaseUrl}/functions/v1/text-to-speech?` +
-          new URLSearchParams({ text }),
+          new URLSearchParams({ text, voiceId }),
         {
           method: "GET",
           headers: {
@@ -150,7 +159,7 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
           const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
           const reader = res.body!.getReader();
           let isReading = true;
-          let hasStartedPlayback = false;
+          let hasStartedPlayback = false; 
 
           const pump = async (): Promise<void> => {
             if (!isReading) return;
@@ -219,7 +228,7 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
       clearTimeout(safetyTimeout);
       setAgentState('idle');
     }
-  }, []);
+  }, [voiceId]);
 
   // Función para procesar transcripción - memoizada
   const processTranscript = useCallback(async (text: string) => {
