@@ -528,21 +528,21 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={handleShare}
-            className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+            className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 cursor-pointer"
           >
             <FaShare className="w-4 h-4" />
             Compartir
           </button>
           <button
             onClick={handleDownload}
-            className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+            className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 cursor-pointer"
           >
             <FaDownload className="w-4 h-4" />
             Descargar informe
           </button>
           <button
             onClick={handleFinalize}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 cursor-pointer"
           >
             <FaCheck className="w-4 h-4" />
             Finalizar

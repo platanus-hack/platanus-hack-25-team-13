@@ -24,7 +24,7 @@ export default function ChatInput({ input, onInputChange, onSend, loading, disab
         <button
           onClick={onSend}
           disabled={loading || !input.trim() || disabled || !onSend}
-          className="bg-[#1098f7] text-white px-6 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0d7fd6] transition-colors font-medium flex-shrink-0"
+          className="bg-[#1098f7] text-white px-6 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#0d7fd6] transition-colors font-medium flex-shrink-0 cursor-pointer"
         >
           Enviar
         </button>
