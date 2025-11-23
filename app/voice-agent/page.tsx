@@ -4,6 +4,7 @@ import { useState } from "react";
 import VoiceAgent from "@/components/VoiceAgent";
 import Feedback from "@/components/anamnesis/Feedback";
 import type { FeedbackResult, ClinicalCase } from "@/types/case";
+import { supabase } from "@/lib/supabase";
 
 type CaseData = {
   sut: string;
@@ -17,6 +18,7 @@ type CaseData = {
   };
   especialidad: string;
   nivel_dificultad: string;
+  publicId?: string;
 };
 
 export default function VoiceAgentPage() {
@@ -27,14 +29,15 @@ export default function VoiceAgentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_interna");
+  const [selectedSpecialty, setSelectedSpecialty] = useState("aps");
   const [selectedDifficulty, setSelectedDifficulty] = useState<"facil" | "medio" | "dificil">("medio");
+  const [caseStartTime, setCaseStartTime] = useState<Date | null>(null);
 
   const specialties = [
-    { value: "medicina_interna", label: "Medicina Interna", icon: "🩺" },
-    { value: "pediatria", label: "Pediatría", icon: "👶" },
-    { value: "cardiologia", label: "Cardiología", icon: "❤️" },
-    { value: "neurologia", label: "Neurología", icon: "🧠" },
+    { value: "aps", label: "APS (CESFAM)", icon: "🏥", description: "Con RAG usando guías clínicas chilenas" },
+    { value: "urgencia", label: "Urgencia", icon: "🚨", description: "Servicio de Urgencias" },
+    { value: "hospitalizacion", label: "Hospitalización", icon: "🏨", description: "Medicina Interna" },
+    { value: "otro", label: "Otro", icon: "🔧", description: "Pediatría / Especialidades" },
   ];
 
   const difficulties = [
@@ -48,11 +51,21 @@ export default function VoiceAgentPage() {
     setError(null);
 
     try {
+      // Obtener la sesión actual para autenticación (opcional)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // Preparar headers - agregar Authorization solo si hay sesión
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (session) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch("/api/generar-caso", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           especialidad: selectedSpecialty,
           nivel_dificultad: selectedDifficulty,
@@ -72,12 +85,16 @@ export default function VoiceAgentPage() {
         patientInfo: data.data.patientInfo,
         especialidad: data.data.especialidad,
         nivel_dificultad: data.data.nivel_dificultad,
+        publicId: data.data.publicId,
       });
 
       // Guardar el caso clínico completo desde simulation-debug
       if (data.data['simulation-debug']?.clinicalCase) {
         setClinicalCase(data.data['simulation-debug'].clinicalCase);
       }
+
+      // Establecer tiempo de inicio para calcular duración
+      setCaseStartTime(new Date());
 
       setStep("conversation");
     } catch (err) {
@@ -111,7 +128,7 @@ export default function VoiceAgentPage() {
             {/* Especialidad */}
             <div className="mb-8">
               <label className="block text-[#00072d]/50 text-xs uppercase tracking-wide font-medium mb-4">
-                Especialidad Médica
+                Nivel de Atención
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {specialties.map((specialty) => (
@@ -127,7 +144,7 @@ export default function VoiceAgentPage() {
                       }
                     `}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-2">
                       <div className={`
                         text-2xl transition-transform duration-200
                         ${selectedSpecialty === specialty.value ? 'scale-110' : 'group-hover:scale-105'}
@@ -140,6 +157,9 @@ export default function VoiceAgentPage() {
                       `}>
                         {specialty.label}
                       </div>
+                    </div>
+                    <div className="text-[#00072d]/50 text-xs pl-9">
+                      {specialty.description}
                     </div>
                   </button>
                 ))}
@@ -265,8 +285,14 @@ export default function VoiceAgentPage() {
             setFeedbackData(feedback);
 
             // Guardar en la base de datos
-            if (clinicalCase) {
+            if (clinicalCase && caseStartTime) {
               try {
+                // Calcular tiempo de demora en segundos
+                const endTime = new Date();
+                const tiempoDemora = Math.floor((endTime.getTime() - caseStartTime.getTime()) / 1000);
+
+                console.log(`⏱️ Tiempo de demora calculado: ${tiempoDemora} segundos`);
+
                 const promedioGeneral = feedback.puntajes
                   ? Object.values(feedback.puntajes as Record<string, number>).reduce((a: number, b: number) => a + b, 0) /
                     Object.keys(feedback.puntajes).length
@@ -274,37 +300,49 @@ export default function VoiceAgentPage() {
 
                 const diagnosticoFinal = feedback.diagnostico?.diagnostico_real || "";
 
-                const response = await fetch("/api/update-anamnesis", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    simulationId: caseData.simulationId,
-                    finalDiagnosis: diagnosticoFinal,
-                    calificacion: promedioGeneral,
-                    simulationData: {
-                      feedback_data: feedback,
-                    },
-                  }),
-                });
+                // Obtener la sesión actual para autenticación
+                const { data: { session } } = await supabase.auth.getSession();
 
-                if (!response.ok) {
-                  console.error("Error al guardar en la base de datos");
+                if (!session) {
+                  console.error("No hay sesión activa para guardar la anamnesis");
+                  return;
                 }
+
+                if (caseData.publicId) {
+                  const response = await fetch("/api/update-anamnesis", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({
+                      simulationId: caseData.simulationId,
+                      finalDiagnosis: diagnosticoFinal,
+                      calificacion: promedioGeneral,
+                      tiempo_demora: tiempoDemora,
+                      simulationData: {
+                        feedback_data: feedback,
+                      },
+                      public_id: caseData.publicId,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error("Error al guardar en la base de datos:", errorData);
+                  } else {
+                    console.log("✅ Anamnesis guardada exitosamente");
+                  }
+                } else {
+                  console.warn("No se pudo guardar feedback: publicId no es válido");
+                }
+
+                // Cambiar al paso de feedback
+                setStep("feedback");
               } catch (error) {
                 console.error("Error al guardar simulación:", error);
               }
             }
-
-            // Cambiar al paso de feedback
-            setStep("feedback");
-          }}
-          onSimulationEnd={() => {
-            console.log('🏁 Simulación finalizada por el usuario');
-            // Volver a la pantalla de selección
-            setCaseData(null);
-            setStep("selection");
           }}
         />
       </div>
