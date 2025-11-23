@@ -1,13 +1,13 @@
 import {
-  Simulation,
-  ClinicalCase,
-  PatientContext,
   ChatMessage,
+  ClinicalCase,
   FeedbackResult,
+  PatientContext,
+  Simulation,
 } from "@/types/case";
 import {
-  generateClinicalCase,
   CaseCreatorOptions,
+  generateClinicalCase,
 } from "@/lib/agents/caseCreatorAgent";
 import {
   generateInitialGreeting,
@@ -15,8 +15,8 @@ import {
 } from "@/lib/agents/patientAgent";
 import {
   decideAction,
-  SystemAction,
   DecisionResult,
+  SystemAction,
 } from "@/lib/agents/decisionAgent";
 import { generateFeedback } from "@/lib/agents/feedbackAgent";
 import { generateCaseWithRAG } from "@/lib/assistant";
@@ -45,7 +45,7 @@ if (process.env.NODE_ENV === "development") {
  * Creates a patient context from a clinical case
  */
 function createPatientContextFromCase(
-  clinicalCase: ClinicalCase
+  clinicalCase: ClinicalCase,
 ): PatientContext {
   return {
     clinicalCase,
@@ -63,7 +63,7 @@ export class SimulationEngine {
    * Automatically uses RAG for APS cases
    */
   static async createSimulation(
-    options: CaseCreatorOptions = {}
+    options: CaseCreatorOptions = {},
   ): Promise<{ simulation: Simulation; initialMessage: string }> {
     try {
       // Step 1: Generate clinical case
@@ -95,18 +95,20 @@ export class SimulationEngine {
         const subcategoria =
           apsSubcategorias[Math.floor(Math.random() * apsSubcategorias.length)];
 
-        const prompt = `${caseGenerationPrompts.system(
-          specialty,
-          nivel_dificultad,
-          subcategoria
-        )}
+        const prompt = `${
+          caseGenerationPrompts.system(
+            specialty,
+            nivel_dificultad,
+            subcategoria,
+          )
+        }
 
 ${caseGenerationPrompts.user()}`;
 
         const output = await generateCaseWithRAG(
           specialty,
           nivel_dificultad,
-          prompt
+          prompt,
         );
 
         if (!output) {
@@ -173,7 +175,7 @@ ${caseGenerationPrompts.user()}`;
    */
   static async processMessage(
     simulationId: string,
-    message: string
+    message: string,
   ): Promise<{
     actionTaken: SystemAction;
     response?: string;
@@ -186,7 +188,7 @@ ${caseGenerationPrompts.user()}`;
     if (!simulation) {
       console.error(`[SimulationEngine] Simulation ${simulationId} not found!`);
       throw new Error(
-        "Simulation not found. It may have expired or been deleted."
+        "Simulation not found. It may have expired or been deleted.",
       );
     }
 
@@ -206,7 +208,7 @@ ${caseGenerationPrompts.user()}`;
       // Step 2: Let the Decision Agent analyze and decide
       const decision: DecisionResult = await decideAction(
         message,
-        simulation.chatHistory
+        simulation.chatHistory,
       );
 
       let response: string | undefined;
@@ -219,7 +221,7 @@ ${caseGenerationPrompts.user()}`;
           const patientResponse = await generatePatientResponse(
             simulation.clinicalCase,
             simulation.chatHistory,
-            message
+            message,
           );
 
           // Add patient's response to history
@@ -240,7 +242,7 @@ ${caseGenerationPrompts.user()}`;
           feedback = await generateFeedback(
             simulation.clinicalCase,
             simulation.chatHistory.slice(0, -1), // Exclude the diagnosis message
-            diagnosis
+            diagnosis,
           );
 
           // Mark simulation as completed
@@ -281,13 +283,13 @@ ${caseGenerationPrompts.user()}`;
    */
   static async sendMessage(
     simulationId: string,
-    message: string
+    message: string,
   ): Promise<{ response: string; timestamp: Date }> {
     const simulation = simulations.get(simulationId);
 
     if (!simulation) {
       throw new Error(
-        "Simulation not found. It may have expired or been deleted."
+        "Simulation not found. It may have expired or been deleted.",
       );
     }
 
@@ -308,7 +310,7 @@ ${caseGenerationPrompts.user()}`;
       const patientResponse = await generatePatientResponse(
         simulation.clinicalCase,
         simulation.chatHistory,
-        message
+        message,
       );
 
       // Add patient's response to history
@@ -338,7 +340,7 @@ ${caseGenerationPrompts.user()}`;
    */
   static getSimulation(
     simulationId: string,
-    includeDiagnosis = false
+    includeDiagnosis = false,
   ): Simulation | null {
     const simulation = simulations.get(simulationId);
 
@@ -400,7 +402,7 @@ ${caseGenerationPrompts.user()}`;
    */
   static updateSimulation(
     simulationId: string,
-    simulation: Simulation
+    simulation: Simulation,
   ): boolean {
     if (!simulations.has(simulationId)) {
       return false;

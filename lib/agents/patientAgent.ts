@@ -1,6 +1,6 @@
 import { createChatCompletion } from "@/lib/openai";
 import { patientChatPrompts } from "@/lib/prompts";
-import type { ClinicalCase, ChatMessage } from "@/types/case";
+import type { ChatMessage, ClinicalCase } from "@/types/case";
 
 /**
  * Patient Agent
@@ -16,7 +16,7 @@ export interface PatientResponse {
  * Generates the initial greeting from the patient
  */
 export async function generateInitialGreeting(
-  clinicalCase: ClinicalCase
+  clinicalCase: ClinicalCase,
 ): Promise<string> {
   const systemPrompt = patientChatPrompts.system(clinicalCase);
 
@@ -33,7 +33,7 @@ export async function generateInitialGreeting(
       {
         temperature: 0.7,
         maxTokens: 150,
-      }
+      },
     );
 
     return response.trim();
@@ -49,7 +49,7 @@ export async function generateInitialGreeting(
 export async function generatePatientResponse(
   clinicalCase: ClinicalCase,
   chatHistory: ChatMessage[],
-  userMessage: string
+  userMessage: string,
 ): Promise<PatientResponse> {
   const systemPrompt = patientChatPrompts.system(clinicalCase);
 

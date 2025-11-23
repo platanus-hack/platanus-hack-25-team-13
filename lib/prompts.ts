@@ -7,7 +7,7 @@ export const caseGenerationPrompts = {
   system: (
     especialidad: string,
     nivelDificultad: string,
-    apsSubcategoria?: string
+    apsSubcategoria?: string,
   ) =>
     `
 Eres un médico experto en educación médica en Chile, especializado en crear casos clínicos por NIVEL DE ATENCIÓN.
@@ -18,8 +18,8 @@ El caso debe ser de nivel de atención: ${especialidad}.
 El nivel de dificultad debe ser: ${nivelDificultad}.
 
 ${
-  especialidad === "aps"
-    ? `
+      especialidad === "aps"
+        ? `
 ═══════════════════════════════════════════════════════════════
 NIVEL: APS (ATENCIÓN PRIMARIA DE SALUD - CESFAM)
 ═══════════════════════════════════════════════════════════════
@@ -28,41 +28,41 @@ CONTEXTO: Consultorio de atención primaria. El médico debe manejar ambulatoria
 ingresar a programas según normativa, y derivar oportunamente cuando corresponda.
 
 ${
-  apsSubcategoria
-    ? `
+          apsSubcategoria
+            ? `
 FOCO ESPECÍFICO: ${apsSubcategoria.toUpperCase()}
 
 Genera un caso de APS enfocado en patología ${apsSubcategoria}:
 ${
-  apsSubcategoria === "cardiovascular"
-    ? "- HTA, DM, dislipidemia, riesgo cardiovascular (PSCV 2017)"
-    : ""
-}
+              apsSubcategoria === "cardiovascular"
+                ? "- HTA, DM, dislipidemia, riesgo cardiovascular (PSCV 2017)"
+                : ""
+            }
 ${
-  apsSubcategoria === "respiratorio"
-    ? "- EPOC, asma, IRA, tabaquismo (Guías Respiratorias)"
-    : ""
-}
+              apsSubcategoria === "respiratorio"
+                ? "- EPOC, asma, IRA, tabaquismo (Guías Respiratorias)"
+                : ""
+            }
 ${
-  apsSubcategoria === "metabolico"
-    ? "- Diabetes, obesidad, síndrome metabólico, tiroides"
-    : ""
-}
+              apsSubcategoria === "metabolico"
+                ? "- Diabetes, obesidad, síndrome metabólico, tiroides"
+                : ""
+            }
 ${
-  apsSubcategoria === "salud_mental"
-    ? "- Depresión, ansiedad, demencia, riesgo suicida (Guía Salud Mental)"
-    : ""
-}
+              apsSubcategoria === "salud_mental"
+                ? "- Depresión, ansiedad, demencia, riesgo suicida (Guía Salud Mental)"
+                : ""
+            }
 ${
-  apsSubcategoria === "musculoesqueletico"
-    ? "- Artrosis, lumbalgia, lesiones osteomusculares"
-    : ""
-}
+              apsSubcategoria === "musculoesqueletico"
+                ? "- Artrosis, lumbalgia, lesiones osteomusculares"
+                : ""
+            }
 
 Evita repetir patrones. Varía edad, sexo, severidad, presentación clínica y contexto social.
 `
-    : ""
-}
+            : ""
+        }
 
 ENFOQUE DEL CASO:
 - ¿Puede manejarse ambulatoriamente en CESFAM?
@@ -74,12 +74,12 @@ ENFOQUE DEL CASO:
 
 USA LOS DOCUMENTOS para criterios de: ingreso a programas, derivación, metas terapéuticas, tiempos GES.
 `
-    : ""
-}
+        : ""
+    }
 
 ${
-  especialidad === "urgencia"
-    ? `
+      especialidad === "urgencia"
+        ? `
 ═══════════════════════════════════════════════════════════════
 NIVEL: URGENCIA (SERVICIO DE URGENCIAS)
 ═══════════════════════════════════════════════════════════════
@@ -102,12 +102,12 @@ El estudiante será evaluado en:
 
 Genera casos que requieran DECISIÓN URGENTE, no solo diagnóstico.
 `
-    : ""
-}
+        : ""
+    }
 
 ${
-  especialidad === "hospitalizacion"
-    ? `
+      especialidad === "hospitalizacion"
+        ? `
 ═══════════════════════════════════════════════════════════════
 NIVEL: HOSPITALIZACIÓN (MEDICINA INTERNA)
 ═══════════════════════════════════════════════════════════════
@@ -130,8 +130,8 @@ El estudiante será evaluado en:
 
 Genera casos de manejo hospitalario complejo, no urgencias iniciales.
 `
-    : ""
-}
+        : ""
+    }
 
 Devuelve SOLO un objeto JSON que siga estrictamente el esquema que te doy más abajo.
 No incluyas comentarios, texto extra ni explicaciones.
@@ -380,7 +380,7 @@ export const feedbackPrompts = {
     clinicalCase: ClinicalCase,
     conversationText: string,
     diagnosticoEstudiante: string,
-    managementPlan?: import("@/types/case").StudentManagementPlan
+    managementPlan?: import("@/types/case").StudentManagementPlan,
   ) => {
     const caseJson = JSON.stringify(clinicalCase, null, 2);
 
@@ -401,7 +401,9 @@ ${conversationText}
 ${diagnosticoEstudiante}
 ==== FIN DIAGNÓSTICO ====
 
-${managementPlan ? `
+${
+      managementPlan
+        ? `
 ==== PLAN DE MANEJO PROPUESTO POR EL ESTUDIANTE ====
 ${JSON.stringify(managementPlan, null, 2)}
 ==== FIN PLAN DE MANEJO ====
@@ -409,13 +411,23 @@ ${JSON.stringify(managementPlan, null, 2)}
 El estudiante completó un formulario estructurado con su plan de manejo. Evalúa:
 - Si la decisión de derivación es correcta (requiere_derivacion: ${managementPlan.requiere_derivacion})
 - Si el tipo de derivación es adecuado (tipo_derivacion: ${managementPlan.tipo_derivacion})
-${managementPlan.especialidad_derivacion ? `- Especialidad a derivar: ${managementPlan.especialidad_derivacion}` : ''}
+${
+          managementPlan.especialidad_derivacion
+            ? `- Especialidad a derivar: ${managementPlan.especialidad_derivacion}`
+            : ""
+        }
 - Si consideró ingreso a programa APS (ingresa_programa_aps: ${managementPlan.ingresa_programa_aps})
-${managementPlan.programa_aps ? `- Programa propuesto: ${managementPlan.programa_aps}` : ''}
+${
+          managementPlan.programa_aps
+            ? `- Programa propuesto: ${managementPlan.programa_aps}`
+            : ""
+        }
 - Calidad del manejo inicial en CESFAM
 - Si definió metas terapéuticas apropiadas
 - Si propuso plan de seguimiento adecuado
-` : ''}
+`
+        : ""
+    }
 
 TU ROL:
 - No generas información nueva.
@@ -429,37 +441,39 @@ CRITERIOS A EVALUAR (puntaje 1.0 a 7.0, escala chilena):
 4. Razonamiento clínico y diagnóstico diferencial
 5. Comunicación efectiva y empatía con el paciente
 ${
-  clinicalCase.especialidad === "aps"
-    ? "6. Manejo y decisiones de derivación (APS)\n   - Evalúa si el estudiante identificó correctamente cuándo derivar\n   - Si propuso derivación, ¿al nivel adecuado? (ambulatorio/urgencia/hospitalización)\n   - Si no requiere derivación, ¿lo reconoció correctamente?\n   - ¿Propuso manejo inicial apropiado en CESFAM antes de derivar?"
-    : ""
-}
+      clinicalCase.especialidad === "aps"
+        ? "6. Manejo y decisiones de derivación (APS)\n   - Evalúa si el estudiante identificó correctamente cuándo derivar\n   - Si propuso derivación, ¿al nivel adecuado? (ambulatorio/urgencia/hospitalización)\n   - Si no requiere derivación, ¿lo reconoció correctamente?\n   - ¿Propuso manejo inicial apropiado en CESFAM antes de derivar?"
+        : ""
+    }
 
 ${
-  clinicalCase.especialidad === "aps" && clinicalCase.manejo_aps
-    ? `
+      clinicalCase.especialidad === "aps" && clinicalCase.manejo_aps
+        ? `
 EVALUACIÓN ESPECÍFICA PARA APS - MANEJO Y DERIVACIÓN:
 
 INFORMACIÓN DEL CASO:
 - Requiere derivación: ${
-        clinicalCase.manejo_aps.derivacion.requiere_derivacion ? "SÍ" : "NO"
-      }
-- Tipo de derivación correcta: ${
-        clinicalCase.manejo_aps.derivacion.tipo_derivacion
-      }
-- Criterios que justifican derivación: ${JSON.stringify(
-        clinicalCase.manejo_aps.derivacion.criterios
-      )}
-- Red flags (derivación urgente): ${JSON.stringify(
-        clinicalCase.manejo_aps.derivacion.red_flags
-      )}
+          clinicalCase.manejo_aps.derivacion.requiere_derivacion ? "SÍ" : "NO"
+        }
+- Tipo de derivación correcta: ${clinicalCase.manejo_aps.derivacion.tipo_derivacion}
+- Criterios que justifican derivación: ${
+          JSON.stringify(
+            clinicalCase.manejo_aps.derivacion.criterios,
+          )
+        }
+- Red flags (derivación urgente): ${
+          JSON.stringify(
+            clinicalCase.manejo_aps.derivacion.red_flags,
+          )
+        }
 - Aplica a programa APS: ${
-        clinicalCase.manejo_aps.criterio_ingreso_programa.aplica ? "SÍ" : "NO"
-      }
+          clinicalCase.manejo_aps.criterio_ingreso_programa.aplica ? "SÍ" : "NO"
+        }
 ${
-  clinicalCase.manejo_aps.criterio_ingreso_programa.aplica
-    ? `- Programa: ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}`
-    : ""
-}
+          clinicalCase.manejo_aps.criterio_ingreso_programa.aplica
+            ? `- Programa: ${clinicalCase.manejo_aps.criterio_ingreso_programa.programa}`
+            : ""
+        }
 
 EVALÚA SI EL ESTUDIANTE:
 1. **Derivación correcta**: ¿Identificó correctamente si el paciente requiere derivación o puede manejarse en CESFAM?
@@ -497,10 +511,12 @@ En "recomendaciones_especificas", debes proporcionar el manejo CORRECTO basado e
   
 - **programa_aps**: Indica el programa EXACTO del caso:
   * "Ingreso a programa ${
-    clinicalCase.manejo_aps?.criterio_ingreso_programa.programa || "[programa]"
-  } por cumplir criterio: ${
-    clinicalCase.manejo_aps?.criterio_ingreso_programa.justificacion || "[criterio]"
-  }"
+          clinicalCase.manejo_aps?.criterio_ingreso_programa.programa ||
+          "[programa]"
+        } por cumplir criterio: ${
+          clinicalCase.manejo_aps?.criterio_ingreso_programa.justificacion ||
+          "[criterio]"
+        }"
   * O "No aplica ingreso a programa" si no corresponde
 
 - **metas_terapeuticas**: Usa las metas EXACTAS del caso:
@@ -510,17 +526,19 @@ En "recomendaciones_especificas", debes proporcionar el manejo CORRECTO basado e
   ${JSON.stringify(clinicalCase.manejo_aps?.manejo_inicial || [])}
 
 - **educacion_paciente**: Temas educativos ESPECÍFICOS del caso:
-  ${JSON.stringify(
-    clinicalCase.manejo_aps?.seguimiento.educacion_obligatoria || []
-  )}
+  ${
+          JSON.stringify(
+            clinicalCase.manejo_aps?.seguimiento.educacion_obligatoria || [],
+          )
+        }
 
 - **seguimiento**: Plan ESPECÍFICO del caso:
   "${clinicalCase.manejo_aps?.seguimiento.frecuencia || ""} - ${
-    clinicalCase.manejo_aps?.seguimiento.duracion || ""
-  }"
+          clinicalCase.manejo_aps?.seguimiento.duracion || ""
+        }"
 `
-    : ""
-}
+        : ""
+    }
 
 COMPARACIÓN DIAGNÓSTICA:
 - Compara el diagnóstico del estudiante con el diagnóstico real:
@@ -551,8 +569,8 @@ NOTA: Todos los puntajes deben estar en escala de 1.0 a 7.0 (sistema chileno)
     "comentario": string
   }
   ${
-    clinicalCase.especialidad === "aps"
-      ? `,"manejo": {
+      clinicalCase.especialidad === "aps"
+        ? `,"manejo": {
     "derivacion_correcta": boolean,  // true si identificó correctamente si requiere o no derivación
     "tipo_derivacion_adecuado": boolean,  // true si el tipo de derivación propuesto coincide con el correcto
     "manejo_inicial_apropiado": boolean,  // true si propuso acciones concretas en CESFAM
@@ -570,13 +588,13 @@ NOTA: Todos los puntajes deben estar en escala de 1.0 a 7.0 (sistema chileno)
       "seguimiento": string  // ESPECÍFICO: "Control en [plazo] para evaluar [parámetro]. Controles [frecuencia] hasta [meta]"
     }
   }`
-      : ""
-  }
+        : ""
+    }
 }
 
 ${
-  clinicalCase.especialidad === "aps"
-    ? `
+      clinicalCase.especialidad === "aps"
+        ? `
 RECORDATORIO CRÍTICO PARA CASOS APS:
 Las "recomendaciones_especificas" deben contener el manejo CORRECTO del caso (no lo que hizo el estudiante).
 Usa los datos EXACTOS que aparecen en el caso clínico arriba:
@@ -595,8 +613,8 @@ Las recomendaciones deben ser texto limpio y legible, sin marcadores de fuentes.
 Ejemplo INCORRECTO: "PA <140/90 mmHg【4:10†source】"
 Ejemplo CORRECTO: "PA <140/90 mmHg"
 `
-    : ""
-}
+        : ""
+    }
 
 NO incluyas explicaciones fuera del JSON.
 Te repito: responde SOLO con JSON válido.

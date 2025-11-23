@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import VoiceAgent from "@/components/VoiceAgent";
+import Feedback from "@/components/anamnesis/Feedback";
+import type { FeedbackResult, ClinicalCase } from "@/types/case";
 
 type CaseData = {
   sut: string;
@@ -18,8 +20,10 @@ type CaseData = {
 };
 
 export default function VoiceAgentPage() {
-  const [step, setStep] = useState<"selection" | "conversation">("selection");
+  const [step, setStep] = useState<"selection" | "conversation" | "feedback">("selection");
   const [caseData, setCaseData] = useState<CaseData | null>(null);
+  const [feedbackData, setFeedbackData] = useState<FeedbackResult | null>(null);
+  const [clinicalCase, setClinicalCase] = useState<ClinicalCase | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,11 +68,16 @@ export default function VoiceAgentPage() {
       setCaseData({
         sut: data.sut,
         simulationId: data.data.simulationId,
-        initialMessage: data.data.initialMessage,
+        initialMessage: data.data.initialMessage  ,
         patientInfo: data.data.patientInfo,
         especialidad: data.data.especialidad,
         nivel_dificultad: data.data.nivel_dificultad,
       });
+
+      // Guardar el caso clínico completo desde simulation-debug
+      if (data.data['simulation-debug']?.clinicalCase) {
+        setClinicalCase(data.data['simulation-debug'].clinicalCase);
+      }
 
       setStep("conversation");
     } catch (err) {
@@ -249,13 +258,47 @@ export default function VoiceAgentPage() {
             difficulty: caseData.nivel_dificultad,
             simulationId: caseData.simulationId,
           }}
-          onFeedback={(feedback) => {
+          onFeedback={async (feedback) => {
             console.log('📊 Feedback recibido en página:', feedback);
-            // TODO: Redirigir a página de resultados con el feedback
-            // Por ahora, mostrar en consola y volver a selección
-            alert('¡Diagnóstico enviado! Revisa la consola para ver el feedback.');
-            setCaseData(null);
-            setStep("selection");
+
+            // Guardar feedback en el estado
+            setFeedbackData(feedback);
+
+            // Guardar en la base de datos
+            if (clinicalCase) {
+              try {
+                const promedioGeneral = feedback.puntajes
+                  ? Object.values(feedback.puntajes as Record<string, number>).reduce((a: number, b: number) => a + b, 0) /
+                    Object.keys(feedback.puntajes).length
+                  : 0;
+
+                const diagnosticoFinal = feedback.diagnostico?.diagnostico_real || "";
+
+                const response = await fetch("/api/update-anamnesis", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    simulationId: caseData.simulationId,
+                    finalDiagnosis: diagnosticoFinal,
+                    calificacion: promedioGeneral,
+                    simulationData: {
+                      feedback_data: feedback,
+                    },
+                  }),
+                });
+
+                if (!response.ok) {
+                  console.error("Error al guardar en la base de datos");
+                }
+              } catch (error) {
+                console.error("Error al guardar simulación:", error);
+              }
+            }
+
+            // Cambiar al paso de feedback
+            setStep("feedback");
           }}
           onSimulationEnd={() => {
             console.log('🏁 Simulación finalizada por el usuario');
@@ -264,6 +307,36 @@ export default function VoiceAgentPage() {
             setStep("selection");
           }}
         />
+      </div>
+    );
+  }
+
+  if (step === "feedback" && feedbackData && clinicalCase) {
+    return (
+      <div className="h-full bg-white overflow-y-auto">
+        {/* Header con botón de volver */}
+        <div className="border-b border-[#00072d]/10 bg-white px-6 py-4">
+          <div className="w-full max-w-7xl mx-auto flex justify-between items-center">
+            <h1 className="text-[#00072d] text-sm font-medium tracking-widest">RESULTADOS DE LA SIMULACIÓN</h1>
+            <button
+              onClick={() => {
+                // Limpiar datos y volver a la selección
+                setCaseData(null);
+                setFeedbackData(null);
+                setClinicalCase(null);
+                setStep("selection");
+              }}
+              className="px-4 py-2 text-[#00072d]/60 hover:text-[#00072d] text-sm transition-colors duration-200 font-medium"
+            >
+              ← Nueva Simulación
+            </button>
+          </div>
+        </div>
+
+        {/* Componente Feedback */}
+        <div className="p-6">
+          <Feedback clinicalCase={clinicalCase} feedback={feedbackData} />
+        </div>
       </div>
     );
   }
