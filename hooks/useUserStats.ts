@@ -78,27 +78,57 @@ export function useUserStats(anamnesis: Anamnesis[]): UserStats {
         ? (ultimaAnamnesis.feedback_data.diagnostico.correcto ? "correcto" : "incorrecto")
         : "sin resultado";
 
-    // Datos de desempeño (últimos 7 días o todas si hay menos)
-    const ultimos7 = anamnesis.slice(0, 7);
-    const diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-    const datosDesempeno = ultimos7.map((a, index) => {
-      const puntajes = a.feedback_data?.puntajes;
-      const nota = puntajes
-        ? calcularPromedioPuntajes(puntajes)
-        : convertirANota(0);
-      return {
-        dia: diasSemana[index] || `Día ${index + 1}`,
-        valor: nota,
-      };
-    });
+    // Datos de desempeño - Agrupar por fecha real (últimos 7 días)
+    const hoy = new Date();
+    const ultimos7Dias: Array<{ dia: string; valor: number; count: number }> = [];
 
-    // Rellenar con ceros si hay menos de 7
-    while (datosDesempeno.length < 7) {
-      datosDesempeno.push({
-        dia: diasSemana[datosDesempeno.length] || `Día ${datosDesempeno.length + 1}`,
+    // Crear estructura para los últimos 7 días
+    for (let i = 6; i >= 0; i--) {
+      const fecha = new Date(hoy);
+      fecha.setDate(hoy.getDate() - i);
+      fecha.setHours(0, 0, 0, 0);
+
+      const diaAbreviado = fecha.toLocaleDateString("es-ES", { weekday: "short" });
+      const diaCapitalizado = diaAbreviado.charAt(0).toUpperCase() + diaAbreviado.slice(1);
+
+      ultimos7Dias.push({
+        dia: diaCapitalizado,
         valor: 0,
+        count: 0,
       });
     }
+
+    // Agrupar anamnesis por fecha
+    anamnesis.forEach((a) => {
+      if (!a.created_at) return;
+
+      const fechaAnamnesis = new Date(a.created_at);
+      fechaAnamnesis.setHours(0, 0, 0, 0);
+
+      // Buscar el índice del día correspondiente
+      for (let i = 0; i < 7; i++) {
+        const fecha = new Date(hoy);
+        fecha.setDate(hoy.getDate() - (6 - i));
+        fecha.setHours(0, 0, 0, 0);
+
+        if (fechaAnamnesis.getTime() === fecha.getTime()) {
+          const puntajes = a.feedback_data?.puntajes;
+          const nota = puntajes ? calcularPromedioPuntajes(puntajes) : 0;
+
+          if (nota > 0) {
+            ultimos7Dias[i].valor += nota;
+            ultimos7Dias[i].count += 1;
+          }
+          break;
+        }
+      }
+    });
+
+    // Calcular promedios y preparar datos finales
+    const datosDesempeno = ultimos7Dias.map((dia) => ({
+      dia: dia.dia,
+      valor: dia.count > 0 ? Math.round((dia.valor / dia.count) * 10) / 10 : 0,
+    }));
 
     // Categoría favorita (basada en especialidad si está disponible)
     const categorias = anamnesis

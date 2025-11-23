@@ -447,39 +447,67 @@ export default function Home() {
               </div>
               <div className="flex-1 flex flex-col justify-between p-2 min-h-0">
                 {/* Gráfico de líneas con recharts */}
-                <div className="flex-1 mb-2 min-h-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={stats.datosDesempeno}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                      <XAxis 
-                        dataKey="dia" 
-                        tick={{ fontSize: 11, fill: "#001c55" }}
-                        stroke="#1098f7"
-                      />
-                      <YAxis 
-                        domain={[1, 7]}
-                        tick={{ fontSize: 11, fill: "#001c55" }}
-                        stroke="#1098f7"
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: "#fff", 
-                          border: "1px solid #1098f7",
-                          borderRadius: "8px",
-                          fontSize: "12px"
-                        }}
-                        formatter={(value: number) => value.toFixed(1)}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="valor"
-                        stroke="#1098f7"
-                        strokeWidth={2}
-                        dot={{ fill: "#1098f7", r: 4, strokeWidth: 2, stroke: "#fff" }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div className="flex-1 mb-2 min-h-0 relative">
+                  {stats.totalSimulaciones === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-sm text-[#001c55] text-opacity-50">
+                        No hay datos aún
+                      </p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={stats.datosDesempeno}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                        <XAxis
+                          dataKey="dia"
+                          tick={{ fontSize: 11, fill: "#001c55" }}
+                          stroke="#1098f7"
+                        />
+                        <YAxis
+                          domain={[1, 7]}
+                          tick={{ fontSize: 11, fill: "#001c55" }}
+                          stroke="#1098f7"
+                          label={{ value: 'Nota', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#001c55' } }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #1098f7",
+                            borderRadius: "8px",
+                            fontSize: "12px"
+                          }}
+                          formatter={(value: number) => {
+                            if (value === 0) return ['Sin datos', 'Nota'];
+                            return [value.toFixed(1), 'Nota'];
+                          }}
+                          labelFormatter={(label) => `${label}`}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="valor"
+                          stroke="#1098f7"
+                          strokeWidth={2}
+                          dot={(props: any) => {
+                            const { cx, cy, payload } = props;
+                            // No mostrar punto si el valor es 0
+                            if (payload.valor === 0) return null;
+                            return (
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r={4}
+                                fill="#1098f7"
+                                stroke="#fff"
+                                strokeWidth={2}
+                              />
+                            );
+                          }}
+                          activeDot={{ r: 6 }}
+                          connectNulls={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
                 {/* Estadísticas resumidas */}
