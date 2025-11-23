@@ -603,7 +603,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                 ) : (
                   <FaTimesCircle className="text-red-500 shrink-0" />
                 )}
-                <span>Decisión de derivación correcta</span>
+                <span className="text-black">Decisión de derivación correcta</span>
               </div>
               <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
                 {feedback.manejo.tipo_derivacion_adecuado ? (
@@ -611,7 +611,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                 ) : (
                   <FaTimesCircle className="text-red-500 shrink-0" />
                 )}
-                <span>Tipo de derivación adecuado</span>
+                <span className="text-black">Tipo de derivación adecuado</span>
               </div>
               <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
                 {feedback.manejo.manejo_inicial_apropiado ? (
@@ -619,7 +619,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                 ) : (
                   <FaTimesCircle className="text-red-500 shrink-0" />
                 )}
-                <span>Manejo inicial apropiado</span>
+                <span className="text-black">Manejo inicial apropiado</span>
               </div>
               {feedback.manejo.considero_ingreso_programa !== undefined && (
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
@@ -628,7 +628,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                   ) : (
                     <FaTimesCircle className="text-red-500 shrink-0" />
                   )}
-                  <span>Consideró ingreso a programa</span>
+                  <span className="text-black">Consideró ingreso a programa</span>
                 </div>
               )}
               {feedback.manejo.metas_terapeuticas_definidas !== undefined && (
@@ -638,7 +638,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                   ) : (
                     <FaTimesCircle className="text-red-500 shrink-0" />
                   )}
-                  <span>Definió metas terapéuticas</span>
+                  <span className="text-black">Definió metas terapéuticas</span>
                 </div>
               )}
               {feedback.manejo.educacion_y_seguimiento_apropiados !== undefined && (
@@ -648,7 +648,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                   ) : (
                     <FaTimesCircle className="text-red-500 shrink-0" />
                   )}
-                  <span>Educación y seguimiento apropiados</span>
+                  <span className="text-black">Educación y seguimiento apropiados</span>
                 </div>
               )}
               {feedback.manejo.considero_factores_psicosociales !== undefined && (
@@ -658,7 +658,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
                   ) : (
                     <FaTimesCircle className="text-red-500 shrink-0" />
                   )}
-                  <span>Consideró factores psicosociales</span>
+                  <span className="text-black">Consideró factores psicosociales</span>
                 </div>
               )}
             </div>
