@@ -12,6 +12,7 @@ import Feedback from "../../components/anamnesis/Feedback";
 import ChatInput from "../../components/anamnesis/ChatInput";
 import ChatImage from "../../components/anamnesis/ChatImage";
 import Stepper from "../../components/Stepper";
+import ManagementPlanModal from "../../components/ManagementPlanModal";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 
@@ -31,6 +32,9 @@ export default function AnamnesisPage() {
   const [caseStartTime, setCaseStartTime] = useState<Date | null>(null);
   const [publicId, setPublicId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showManagementModal, setShowManagementModal] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [detectedDiagnosis, setDetectedDiagnosis] = useState<string>("");
 
   // Set mounted to true when component mounts (client-side only)
   useEffect(() => {
@@ -323,7 +327,7 @@ export default function AnamnesisPage() {
             
             // Calcular calificación promedio
             const promedioGeneral = feedback.puntajes
-              ? Object.values(feedback.puntajes).reduce((a: number, b: number) => a + b, 0) /
+              ? Object.values(feedback.puntajes as Record<string, number>).reduce((a: number, b: number) => a + b, 0) /
                 Object.keys(feedback.puntajes).length
               : 0;
 
