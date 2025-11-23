@@ -1,0 +1,5 @@
+MedSim es un simulador clínico interactivo diseñado para enseñar, practicar y evaluar habilidades en la atención de pacientes dentro del sistema de salud chileno. A través de un formato conversacional tipo role-play, el usuario interactúa con pacientes virtuales que presentan síntomas, antecedentes personales, factores sociales y respuestas realistas, obligando a realizar preguntas dirigidas, tomar decisiones de manejo y definir diagnósticos diferenciales basados en evidencia.
+
+El sistema utiliza IA, que mediante RAG tiene acceso a normativas oficiales del MINSAL, incluyendo guías clínicas nacionales, GES, PSCV, ERA, programas de Salud Mental y protocolos de derivación en APS. Esto permite que cada caso se desarrolle con conductas clínicamente correctas, respetando tiempos de derivación, educación obligatoria, seguridad del paciente y decisiones terapéuticas ajustadas al nivel de atención (APS, urgencia u hospitalización).
+
+Permite también interactuar mediante voz, y solicitar exámenes al paciente para entender mejor su patología.
