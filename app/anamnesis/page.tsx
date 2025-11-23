@@ -62,6 +62,7 @@ export default function AnamnesisPage() {
         loadReviewData(id);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Cargar datos de revisión
@@ -70,7 +71,7 @@ export default function AnamnesisPage() {
       const anamnesis = await getAnamnesisById(id);
       if (anamnesis) {
         // Cargar datos del caso desde summary
-        if (anamnesis.summary) {
+        if (anamnesis.summary && typeof anamnesis.summary === 'string') {
           try {
             const caseData = JSON.parse(anamnesis.summary);
             const simulationDebug = caseData["simulation-debug"];
@@ -147,6 +148,9 @@ export default function AnamnesisPage() {
             timestamp: msg.created_at ? new Date(msg.created_at) : new Date(),
           }));
           setMessages(chatMessages);
+          console.log(`✅ Cargados ${chatMessages.length} mensajes desde Supabase para modo revisión`);
+        } else {
+          console.log("ℹ️ No hay mensajes guardados para esta anamnesis");
         }
         
         // Determinar el paso inicial basado en los datos disponibles
@@ -195,6 +199,9 @@ export default function AnamnesisPage() {
           // Guardar anamnesisId si está disponible
           if (parsedCase.anamnesisId) {
             setAnamnesisId(parsedCase.anamnesisId);
+            console.log("✅ anamnesisId establecido desde sessionStorage:", parsedCase.anamnesisId);
+          } else {
+            console.warn("⚠️ No se encontró anamnesisId en el caso guardado");
           }
           
           // Guardar tiempo de inicio para calcular duración
@@ -350,9 +357,12 @@ export default function AnamnesisPage() {
       if (anamnesisId) {
         try {
           await addMessage(anamnesisId, "assistant", firstMessage);
+          console.log("✅ Mensaje inicial del asistente guardado en Supabase");
         } catch (error) {
-          console.error("Error saving initial assistant message:", error);
+          console.error("❌ Error saving initial assistant message:", error);
         }
+      } else {
+        console.warn("⚠️ No anamnesisId disponible para guardar mensaje inicial del asistente");
       }
     }, 2000);
   };
@@ -432,9 +442,12 @@ export default function AnamnesisPage() {
     if (anamnesisId) {
       try {
         await addMessage(anamnesisId, "user", input);
+        console.log("✅ Mensaje del usuario guardado en Supabase:", input.substring(0, 50));
       } catch (error) {
-        console.error("Error saving user message:", error);
+        console.error("❌ Error saving user message:", error);
       }
+    } else {
+      console.warn("⚠️ No anamnesisId disponible para guardar mensaje del usuario");
     }
     
     const messageContent = input;
@@ -471,9 +484,12 @@ export default function AnamnesisPage() {
         if (anamnesisId) {
           try {
             await addMessage(anamnesisId, "assistant", data.data.response);
+            console.log("✅ Mensaje del asistente guardado en Supabase:", data.data.response.substring(0, 50));
           } catch (error) {
-            console.error("Error saving assistant message:", error);
+            console.error("❌ Error saving assistant message:", error);
           }
+        } else {
+          console.warn("⚠️ No anamnesisId disponible para guardar mensaje del asistente");
         }
 
         // Update requested exams from engine response
