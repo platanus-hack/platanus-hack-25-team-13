@@ -72,6 +72,7 @@ export async function POST(req: Request) {
 
     // Save to Supabase if user is authenticated
     let publicId: string | null = null;
+    let anamnesisId: number | null = null;
     if (userId && authHeader) {
       try {
         // Create Supabase client with user's token for RLS
@@ -99,7 +100,8 @@ export async function POST(req: Request) {
 
         if (!dbError && anamnesisData) {
           publicId = anamnesisData.public_id;
-          console.log("Case saved successfully with public_id:", publicId);
+          anamnesisId = anamnesisData.id;
+          console.log("Case saved successfully with public_id:", publicId, "anamnesisId:", anamnesisId);
         } else {
           console.error("Error saving case to database:", dbError);
           // Log more details about the error
@@ -126,6 +128,7 @@ export async function POST(req: Request) {
         data: {
           ...caseData,
           publicId, // Include public_id for sharing
+          anamnesisId, // Include anamnesisId for saving messages
         },
       },
       { status: 200 }

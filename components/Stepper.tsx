@@ -7,9 +7,11 @@ interface Step {
 interface StepperProps {
   steps: Step[];
   currentStep: number;
+  onStepClick?: (stepIndex: number) => void;
+  clickable?: boolean;
 }
 
-export default function Stepper({ steps, currentStep }: StepperProps) {
+export default function Stepper({ steps, currentStep, onStepClick, clickable = false }: StepperProps) {
   return (
     <div className="w-full py-2">
       <div className="flex items-center justify-center relative">
@@ -30,19 +32,21 @@ export default function Stepper({ steps, currentStep }: StepperProps) {
         {steps.map((step, index) => {
           const isActive = index === currentStep;
           const isCompleted = index < currentStep;
-
+          const canClick = clickable && onStepClick; // En modo revisión, cualquier paso es clickeable
+          
           return (
             <div key={index} className="flex flex-col items-center relative" style={{ flex: 1 }}>
               {/* Circle */}
               <div className="relative z-10">
                 <div
+                  onClick={canClick ? () => onStepClick(index) : undefined}
                   className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
                     isCompleted
                       ? "bg-[#1098f7] border-[#1098f7] text-white"
                       : isActive
                       ? "bg-[#1098f7] border-[#1098f7] text-white"
                       : "bg-white border-gray-300 text-gray-400"
-                  }`}
+                  } ${canClick ? "cursor-pointer hover:scale-110" : ""}`}
                 >
                   {isCompleted ? (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,13 +63,14 @@ export default function Stepper({ steps, currentStep }: StepperProps) {
               {/* Title */}
               <div className="mt-1 text-center">
                 <span
+                  onClick={canClick ? () => onStepClick(index) : undefined}
                   className={`text-[10px] font-medium whitespace-nowrap ${
                     isActive
                       ? "text-[#1098f7] font-semibold"
                       : isCompleted
                       ? "text-gray-700"
                       : "text-gray-400"
-                  }`}
+                  } ${canClick ? "cursor-pointer hover:text-[#1098f7]" : ""}`}
                 >
                   {step.title}
                 </span>
