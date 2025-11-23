@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     // Get authenticated user from Authorization header or body
     const authHeader = req.headers.get("authorization");
     let userId: string | null = null;
-    
+
     if (authHeader) {
       try {
         const supabase = createServerClient();
@@ -33,22 +33,60 @@ export async function POST(req: Request) {
         // Continue without user_id if auth fails
       }
     }
-    
+
     // Also check if user_id is provided in body (fallback)
     if (!userId && body.user_id) {
       userId = body.user_id;
     }
 
-    // Map nivel_dificultad to difficulty
     const difficultyMap: Record<string, "easy" | "medium" | "hard"> = {
       facil: "easy",
       medio: "medium",
       dificil: "hard",
     };
 
+    const response = await fetch(
+      "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": process.env.ELEVENLABS_API_KEY || "",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.error(
+        "❌ Error al generar token:",
+        response.status,
+        response.statusText,
+      );
+      const errorData = await response.text();
+      console.error("Detalles del error:", errorData);
+      return NextResponse.json(
+        {
+          error:
+            `Error al generar token de Eleven Labs: ${response.statusText}`,
+        },
+        { status: response.status },
+      );
+    }
+
+    const data = await response.json();
+    const elevenLabsToken = data.token;
+
+    if (!elevenLabsToken) {
+      console.error("❌ No se recibió token en la respuesta");
+      return NextResponse.json(
+        { error: "Error generating token to ElevenLabs" },
+        { status: 500 },
+      );
+    }
+
+    console.log("✅ Token generado exitosamente");
     const difficulty = difficultyMap[nivel_dificultad] || "medium";
-    const { simulation, initialMessage } =
-      await SimulationEngine.createSimulation({
+    const { simulation, initialMessage } = await SimulationEngine
+      .createSimulation({
         difficulty,
         specialty: especialidad,
       });
@@ -78,12 +116,13 @@ export async function POST(req: Request) {
         // Create Supabase client with user's token for RLS
         const token = authHeader.replace("Bearer ", "");
         const supabase = createServerClient(token);
-        
-        const title = `${simulation.clinicalCase.especialidad} - ${simulation.clinicalCase.nivel_dificultad}`;
+
+        const title =
+          `${simulation.clinicalCase.especialidad} - ${simulation.clinicalCase.nivel_dificultad}`;
         const summary = JSON.stringify(caseData);
-        
+
         console.log("Attempting to save case to database for user:", userId);
-        
+
         const { data: anamnesisData, error: dbError } = await supabase
           .from("anamnesis")
           .insert([
@@ -101,7 +140,12 @@ export async function POST(req: Request) {
         if (!dbError && anamnesisData) {
           publicId = anamnesisData.public_id;
           anamnesisId = anamnesisData.id;
-          console.log("Case saved successfully with public_id:", publicId, "anamnesisId:", anamnesisId);
+          console.log(
+            "Case saved successfully with public_id:",
+            publicId,
+            "anamnesisId:",
+            anamnesisId,
+          );
         } else {
           console.error("Error saving case to database:", dbError);
           // Log more details about the error
@@ -119,25 +163,31 @@ export async function POST(req: Request) {
         // Continue even if database save fails
       }
     } else {
-      console.log("Skipping database save - userId:", userId, "authHeader:", !!authHeader);
+      console.log(
+        "Skipping database save - userId:",
+        userId,
+        "authHeader:",
+        !!authHeader,
+      );
     }
 
     return NextResponse.json(
       {
         success: true,
+        sut: elevenLabsToken,
         data: {
           ...caseData,
-          publicId, // Include public_id for sharing
+          publicId, // Include public_id for sharing,
           anamnesisId, // Include anamnesisId for saving messages
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("Error generando caso clínico:", err);
     return NextResponse.json(
       { error: "Error generando caso clínico" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

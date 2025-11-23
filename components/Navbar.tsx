@@ -28,7 +28,7 @@ export default function Navbar() {
           <div className="bg-white p-2 rounded-lg">
             <FaStethoscope className="w-6 h-6 text-[#1098f7]" />
           </div>
-          <span className="text-2xl font-bold text-white">MediSim</span>
+          <span className="text-2xl font-bold text-white">MedSim</span>
         </button>
 
         {/* Navigation Links */}

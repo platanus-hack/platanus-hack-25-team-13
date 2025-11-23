@@ -31,22 +31,26 @@ async function setupAssistant() {
     // 1. Verificar que exista la carpeta de documentos
     if (!fs.existsSync(DOCS_FOLDER)) {
       console.error(`❌ Error: No existe la carpeta ${DOCS_FOLDER}`);
-      console.log("Crea la carpeta './docs' y coloca tus archivos PDF/TXT de guías MINSAL ahí.");
+      console.log(
+        "Crea la carpeta './docs' y coloca tus archivos PDF/TXT de guías MINSAL ahí.",
+      );
       process.exit(1);
     }
 
     // 2. Buscar archivos PDF y TXT en la carpeta
-    const files = fs.readdirSync(DOCS_FOLDER).filter(file => {
+    const files = fs.readdirSync(DOCS_FOLDER).filter((file) => {
       const ext = path.extname(file).toLowerCase();
       return ext === ".pdf" || ext === ".txt";
     });
 
     if (files.length === 0) {
       console.warn("⚠️  No se encontraron archivos PDF o TXT en ./docs/");
-      console.log("Puedes crear el Assistant sin archivos y agregarlos después.\n");
+      console.log(
+        "Puedes crear el Assistant sin archivos y agregarlos después.\n",
+      );
     } else {
       console.log(`📁 Archivos encontrados: ${files.length}`);
-      files.forEach(file => console.log(`   - ${file}`));
+      files.forEach((file) => console.log(`   - ${file}`));
       console.log();
     }
 
@@ -76,9 +80,10 @@ async function setupAssistant() {
     console.log("🤖 Creando Assistant...");
 
     const assistant = await openai.beta.assistants.create({
-      name: "MediSim Case Generator",
+      name: "MedSim Case Generator",
       model: "gpt-4-turbo-preview",
-      instructions: `Eres un médico experto en educación médica en Chile, especializado en crear casos clínicos realistas por NIVEL DE ATENCIÓN.
+      instructions:
+        `Eres un médico experto en educación médica en Chile, especializado en crear casos clínicos realistas por NIVEL DE ATENCIÓN.
 
 Tu tarea es generar casos clínicos REALISTAS, coherentes y adecuados para estudiantes de medicina.
 NO inventes enfermedades raras ni datos fisiológicamente imposibles.
@@ -101,23 +106,25 @@ IMPORTANTE:
 - No generes valores extremos o fisiológicamente imposibles
 - Usa información de los documentos cuando esté disponible`,
       tools: fileIds.length > 0 ? [{ type: "file_search" }] : [],
-      tool_resources: fileIds.length > 0 ? {
-        file_search: {
-          vector_stores: [
-            {
-              file_ids: fileIds,
-            },
-          ],
-        },
-      } : undefined,
+      tool_resources: fileIds.length > 0
+        ? {
+          file_search: {
+            vector_stores: [
+              {
+                file_ids: fileIds,
+              },
+            ],
+          },
+        }
+        : undefined,
     });
 
     console.log("✅ Assistant creado exitosamente!\n");
 
     // 5. Mostrar resultados
-    console.log("=" .repeat(60));
+    console.log("=".repeat(60));
     console.log("📋 INFORMACIÓN DEL ASSISTANT");
-    console.log("=" .repeat(60));
+    console.log("=".repeat(60));
     console.log(`ID del Assistant: ${assistant.id}`);
     console.log(`Nombre: ${assistant.name}`);
     console.log(`Modelo: ${assistant.model}`);
@@ -132,17 +139,19 @@ IMPORTANTE:
       console.log();
     }
 
-    console.log("=" .repeat(60));
+    console.log("=".repeat(60));
     console.log("🔑 VARIABLES DE ENTORNO");
-    console.log("=" .repeat(60));
+    console.log("=".repeat(60));
     console.log("Agrega esta línea a tu archivo .env:\n");
     console.log(`OPENAI_ASSISTANT_ID=${assistant.id}`);
     console.log();
-    console.log("=" .repeat(60));
+    console.log("=".repeat(60));
     console.log();
 
     console.log("✅ Setup completado!");
-    console.log("💡 Ahora puedes usar el Assistant en tu aplicación con solo el ASSISTANT_ID");
+    console.log(
+      "💡 Ahora puedes usar el Assistant en tu aplicación con solo el ASSISTANT_ID",
+    );
     console.log("💡 Los archivos quedan almacenados en OpenAI permanentemente");
     console.log();
 
@@ -158,12 +167,11 @@ IMPORTANTE:
           createdAt: new Date().toISOString(),
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     console.log(`📝 Configuración guardada en: ${configPath}`);
     console.log();
-
   } catch (error) {
     console.error("❌ Error durante el setup:", error);
     process.exit(1);
@@ -182,7 +190,7 @@ async function updateAssistantFiles() {
   }
 
   try {
-    const files = fs.readdirSync(DOCS_FOLDER).filter(file => {
+    const files = fs.readdirSync(DOCS_FOLDER).filter((file) => {
       const ext = path.extname(file).toLowerCase();
       return ext === ".pdf" || ext === ".txt";
     });
@@ -219,7 +227,6 @@ async function updateAssistantFiles() {
 
     console.log("✅ Archivos actualizados exitosamente!");
     console.log(`📎 ${fileIds.length} archivos vinculados al Assistant`);
-
   } catch (error) {
     console.error("❌ Error actualizando archivos:", error);
     process.exit(1);

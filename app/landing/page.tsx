@@ -266,10 +266,10 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Con MediSim */}
+              {/* Con MedSim */}
               <div className="relative bg-white rounded-2xl p-8 border border-gray-200 shadow-md">
                 <div className="text-center mb-8">
-                  <h4 className="text-xl font-bold text-[#001c55] mb-2">MediSim como Complemento</h4>
+                  <h4 className="text-xl font-bold text-[#001c55] mb-2">MedSim como Complemento</h4>
                   <p className="text-sm text-[#1098f7]">Práctica ilimitada, feedback instantáneo</p>
                 </div>
                 <div className="space-y-8">
@@ -326,7 +326,7 @@ export default function LandingPage() {
                 Entrenamiento clínico del futuro
               </h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                MediSim utiliza inteligencia artificial avanzada para crear simulaciones clínicas realistas que te preparan para situaciones del mundo real.
+                MedSim utiliza inteligencia artificial avanzada para crear simulaciones clínicas realistas que te preparan para situaciones del mundo real.
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
                 Nuestros casos están basados en guías clínicas chilenas oficiales, asegurando que tu entrenamiento esté alineado con los estándares nacionales.
@@ -396,12 +396,12 @@ export default function LandingPage() {
               <div className="bg-[#1098f7] p-2 rounded-lg">
                 <FaStethoscope className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-[#001c55]">MediSim</span>
+              <span className="text-2xl font-bold text-[#001c55]">MedSim</span>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-8">
             <p className="text-center text-gray-600">
-              2025 MediSim - Grupo 13 Platanus Hack 25
+              2025 MedSim - Grupo 13 Platanus Hack 25
             </p>
             <p className="text-center text-gray-500 text-sm mt-2">
               Plataforma de simulación clínica para estudiantes de medicina

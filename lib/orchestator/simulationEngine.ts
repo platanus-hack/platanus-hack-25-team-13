@@ -1,30 +1,26 @@
-import { v4 as uuidv4 } from "uuid";
 import type {
-  Simulation,
-  ClinicalCase,
-  PatientContext,
   ChatMessage,
+  ClinicalCase,
   FeedbackResult,
+  PatientContext,
+  Simulation,
 } from "@/types/case";
 import {
-  generateClinicalCase,
   type CaseCreatorOptions,
+  generateClinicalCase,
 } from "@/lib/agents/caseCreatorAgent";
 import {
+  generateExamPresentationResponse,
   generateInitialGreeting,
   generatePatientResponse,
-  generateExamPresentationResponse,
 } from "@/lib/agents/patientAgent";
 import {
   decideAction,
-  type SystemAction,
   type DecisionResult,
+  type SystemAction,
 } from "@/lib/agents/decisionAgent";
 import { generateFeedback } from "@/lib/agents/feedbackAgent";
-import {
-  processExamRequest,
-  type ExamResult,
-} from "@/lib/agents/examAgent";
+import { type ExamResult, processExamRequest } from "@/lib/agents/examAgent";
 import { generateCaseWithRAG } from "@/lib/assistant";
 import { caseGenerationPrompts } from "@/lib/prompts";
 
@@ -51,7 +47,7 @@ if (process.env.NODE_ENV === "development") {
  * Creates a patient context from a clinical case
  */
 function createPatientContextFromCase(
-  clinicalCase: ClinicalCase
+  clinicalCase: ClinicalCase,
 ): PatientContext {
   return {
     clinicalCase,
@@ -69,7 +65,7 @@ export class SimulationEngine {
    * Uses RAG only for APS cases, but applies variability logic to all
    */
   static async createSimulation(
-    options: CaseCreatorOptions = {}
+    options: CaseCreatorOptions = {},
   ): Promise<{ simulation: Simulation; initialMessage: string }> {
     try {
       // Step 1: Prepare parameters
@@ -89,7 +85,7 @@ export class SimulationEngine {
 
       // Select random subcategory based on specialty
       let subcategoria: string | undefined;
-      
+
       if (specialty === "aps") {
         const apsSubcategorias = [
           "cardiovascular",
@@ -98,7 +94,8 @@ export class SimulationEngine {
           "salud_mental",
           "musculoesqueletico",
         ];
-        subcategoria = apsSubcategorias[Math.floor(Math.random() * apsSubcategorias.length)];
+        subcategoria =
+          apsSubcategorias[Math.floor(Math.random() * apsSubcategorias.length)];
       } else if (specialty === "urgencia") {
         const urgenciaSubcategorias = [
           "cardiovascular",
@@ -108,7 +105,9 @@ export class SimulationEngine {
           "traumatologico",
           "metabolico",
         ];
-        subcategoria = urgenciaSubcategorias[Math.floor(Math.random() * urgenciaSubcategorias.length)];
+        subcategoria = urgenciaSubcategorias[
+          Math.floor(Math.random() * urgenciaSubcategorias.length)
+        ];
       } else if (specialty === "hospitalizacion") {
         const hospitalizacionSubcategorias = [
           "cardiovascular",
@@ -118,28 +117,36 @@ export class SimulationEngine {
           "renal",
           "infeccioso",
         ];
-        subcategoria = hospitalizacionSubcategorias[Math.floor(Math.random() * hospitalizacionSubcategorias.length)];
+        subcategoria = hospitalizacionSubcategorias[
+          Math.floor(Math.random() * hospitalizacionSubcategorias.length)
+        ];
       }
 
-      console.log(`🎲 Generando caso de ${specialty}${subcategoria ? ` - ${subcategoria}` : ''} (dificultad: ${nivel_dificultad})`);
+      console.log(
+        `🎲 Generando caso de ${specialty}${
+          subcategoria ? ` - ${subcategoria}` : ""
+        } (dificultad: ${nivel_dificultad})`,
+      );
 
       // Step 2: Generate clinical case
       let clinicalCase: ClinicalCase;
 
       if (specialty === "aps") {
         // APS uses RAG for enhanced accuracy
-        const prompt = `${caseGenerationPrompts.system(
-          specialty,
-          nivel_dificultad,
-          subcategoria
-        )}
+        const prompt = `${
+          caseGenerationPrompts.system(
+            specialty,
+            nivel_dificultad,
+            subcategoria,
+          )
+        }
 
 ${caseGenerationPrompts.user()}`;
 
         const output = await generateCaseWithRAG(
           specialty,
           nivel_dificultad,
-          prompt
+          prompt,
         );
 
         if (!output) {
@@ -151,7 +158,7 @@ ${caseGenerationPrompts.user()}`;
         const jsonString = jsonMatch ? jsonMatch[0] : output;
 
         clinicalCase = JSON.parse(jsonString) as ClinicalCase;
-        
+
         if (!clinicalCase.paciente || !clinicalCase.motivo_consulta) {
           throw new Error("Caso incompleto");
         }
@@ -160,7 +167,8 @@ ${caseGenerationPrompts.user()}`;
           clinicalCase.id = `case-aps-${Date.now()}`;
         }
 
-        clinicalCase.aps_subcategoria = subcategoria as ClinicalCase["aps_subcategoria"];
+        clinicalCase.aps_subcategoria =
+          subcategoria as ClinicalCase["aps_subcategoria"];
       } else {
         // Other specialties use standard generation with subcategory hint
         const optionsWithSubcategory = {
@@ -169,11 +177,15 @@ ${caseGenerationPrompts.user()}`;
           difficulty,
           subcategory: subcategoria, // Pass subcategory as hint
         };
-        
+
         clinicalCase = await generateClinicalCase(optionsWithSubcategory);
       }
 
-      console.log(`✅ Caso generado: ${clinicalCase.diagnostico_principal || 'Sin diagnóstico'}`);
+      console.log(
+        `✅ Caso generado: ${
+          clinicalCase.diagnostico_principal || "Sin diagnóstico"
+        }`,
+      );
 
       // Step 3: Create patient context
       const patientContext = createPatientContextFromCase(clinicalCase);
@@ -212,7 +224,7 @@ ${caseGenerationPrompts.user()}`;
   // ...existing processMessage and other methods remain unchanged...
   static async processMessage(
     simulationId: string,
-    message: string
+    message: string,
   ): Promise<{
     actionTaken: SystemAction;
     response?: string;
@@ -226,7 +238,7 @@ ${caseGenerationPrompts.user()}`;
     if (!simulation) {
       console.error(`[SimulationEngine] Simulation ${simulationId} not found!`);
       throw new Error(
-        "Simulation not found. It may have expired or been deleted."
+        "Simulation not found. It may have expired or been deleted.",
       );
     }
 
@@ -246,7 +258,7 @@ ${caseGenerationPrompts.user()}`;
       // Step 2: Let the Decision Agent analyze and decide
       const decision: DecisionResult = await decideAction(
         message,
-        simulation.chatHistory
+        simulation.chatHistory,
       );
 
       let response: string | undefined;
@@ -260,7 +272,7 @@ ${caseGenerationPrompts.user()}`;
           const patientResponse = await generatePatientResponse(
             simulation.clinicalCase,
             simulation.chatHistory,
-            message
+            message,
           );
 
           // Add patient's response to history
@@ -286,23 +298,23 @@ ${caseGenerationPrompts.user()}`;
           const conversationContext = recentMessages
             .map(
               (msg) =>
-                `${msg.role === "user" ? "Estudiante" : "Paciente"}: ${
-                  msg.content
-                }`
+                `${
+                  msg.role === "user" ? "Estudiante" : "Paciente"
+                }: ${msg.content}`,
             )
             .join("\n");
 
           // Process the exam request
           examResult = await processExamRequest(
             decision.examRequest,
-            conversationContext
+            conversationContext,
           );
 
           // Generate patient response (patient presents the exam)
           response = await generateExamPresentationResponse(
             simulation.clinicalCase,
             decision.examRequest.tipo,
-            examResult.success
+            examResult.success,
           );
 
           // Add exam to requested exams history
@@ -311,10 +323,11 @@ ${caseGenerationPrompts.user()}`;
           }
           simulation.requestedExams.push({
             tipo: decision.examRequest.tipo,
-            clasificacion: decision.examRequest.clasificacion || null,
-            subclasificacion: decision.examRequest.subclasificacion || null,
+            clasificacion: decision.examRequest.clasificacion,
+            subclasificacion: decision.examRequest.subclasificacion,
             imageUrl: examResult.imageUrl,
             requestedAt: new Date(),
+            found: examResult.success,
           });
 
           // Add patient response to chat history
@@ -334,13 +347,13 @@ ${caseGenerationPrompts.user()}`;
           feedback = await generateFeedback(
             simulation.clinicalCase,
             simulation.chatHistory.slice(0, -1), // Exclude the diagnosis message
-            diagnosis
+            diagnosis,
           );
 
           // Mark simulation as completed
           simulation.status = "completed";
 
-          response = "He recibido tu diagnóstico. Aquí está tu evaluación.";
+          response = "✓ Diagnóstico recibido. Generando tu evaluación...";
           break;
 
         case "end_simulation":
@@ -371,7 +384,7 @@ ${caseGenerationPrompts.user()}`;
 
   static getSimulation(
     simulationId: string,
-    includeDiagnosis = false
+    includeDiagnosis = false,
   ): Simulation | null {
     const simulation = simulations.get(simulationId);
 
@@ -403,7 +416,7 @@ ${caseGenerationPrompts.user()}`;
 
   static updateSimulationStatus(
     simulationId: string,
-    status: "active" | "completed" | "abandoned"
+    status: "active" | "completed" | "abandoned",
   ): void {
     const simulation = simulations.get(simulationId);
     if (simulation) {
@@ -442,7 +455,7 @@ ${caseGenerationPrompts.user()}`;
 
   static updateSimulation(
     simulationId: string,
-    simulation: Simulation
+    simulation: Simulation,
   ): boolean {
     if (!simulations.has(simulationId)) {
       return false;
