@@ -147,15 +147,16 @@ export default function AnamnesisPage() {
             timestamp: msg.created_at ? new Date(msg.created_at) : new Date(),
           }));
           setMessages(chatMessages);
-          
-          // Determinar el paso actual basado en los mensajes
-          if (anamnesis.feedback_data) {
-            setCurrentStep(2); // Feedback
-          } else if (chatMessages.length > 0) {
-            setCurrentStep(1); // Consulta
-          } else {
-            setCurrentStep(0); // Antecedentes
-          }
+        }
+        
+        // Determinar el paso inicial basado en los datos disponibles
+        // En modo revisión, el usuario puede navegar libremente, pero empezamos en el paso más avanzado
+        if (anamnesis.feedback_data) {
+          setCurrentStep(2); // Feedback
+        } else if (savedMessages && savedMessages.length > 0) {
+          setCurrentStep(1); // Consulta
+        } else {
+          setCurrentStep(0); // Antecedentes
         }
       }
     } catch (error) {
@@ -640,7 +641,7 @@ export default function AnamnesisPage() {
       <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
         <div className="w-full max-w-3xl">
           {isReviewMode && (
-            <div className="mb-2 text-center">
+            <div className="mb-3 text-center">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -691,7 +692,7 @@ export default function AnamnesisPage() {
         )}
         
         {currentStep === 1 && (
-          <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] ">
+          <div className="w-[90vw] flex gap-6 h-[calc(100vh-270px)] mt-4">
             <div className="w-[30%] flex-shrink-0 flex flex-col gap-3">
               <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] flex-1 flex items-center justify-center relative">
                 {showExamViewer && examImageUrl ? (
@@ -791,7 +792,23 @@ export default function AnamnesisPage() {
       {/* Stepper fixed en la parte inferior */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 py-4 px-4">
         <div className="max-w-2xl mx-auto">
-          <Stepper steps={steps} currentStep={currentStep} />
+          {isReviewMode && (
+            <div className="mb-3 text-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Modo Revisión
+              </span>
+            </div>
+          )}
+          <Stepper 
+            steps={steps} 
+            currentStep={currentStep} 
+            clickable={isReviewMode}
+            onStepClick={isReviewMode ? (stepIndex) => setCurrentStep(stepIndex) : undefined}
+          />
         </div>
       </div>
 
