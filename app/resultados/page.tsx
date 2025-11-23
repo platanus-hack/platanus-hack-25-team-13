@@ -81,7 +81,7 @@ export default function ResultadosPage() {
         const startTimeDate = new Date(startTime);
         const tiempoDemora = Math.floor((endTime.getTime() - startTimeDate.getTime()) / 1000); // segundos
         
-        const promedioGeneral = Object.values(parsedData.feedback.puntajes).reduce(
+        const promedioGeneral = Object.values(parsedData.feedback.puntajes as Record<string, number>).reduce(
           (a: number, b: number) => a + b, 
           0
         ) / Object.keys(parsedData.feedback.puntajes).length;

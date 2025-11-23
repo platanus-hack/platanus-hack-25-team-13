@@ -73,9 +73,10 @@ export function useUserStats(anamnesis: Anamnesis[]): UserStats {
         : undefined;
     
     // Resultado de la última simulación
-    const ultimaSimulacionResultado = ultimaAnamnesis?.feedback_data?.diagnostico?.correcto !== undefined
-      ? (ultimaAnamnesis.feedback_data.diagnostico.correcto ? "correcto" : "incorrecto")
-      : "sin resultado";
+    const ultimaSimulacionResultado: "correcto" | "incorrecto" | "sin resultado" | undefined = 
+      ultimaAnamnesis?.feedback_data?.diagnostico?.correcto !== undefined
+        ? (ultimaAnamnesis.feedback_data.diagnostico.correcto ? "correcto" : "incorrecto")
+        : "sin resultado";
 
     // Datos de desempeño (últimos 7 días o todas si hay menos)
     const ultimos7 = anamnesis.slice(0, 7);
