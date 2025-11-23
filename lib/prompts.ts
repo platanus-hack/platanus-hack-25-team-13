@@ -353,6 +353,7 @@ Si eliges "request_exam" DEBES completar el objeto "exam_request" con tu mejor i
 - "tipo": uno de los tipos disponibles (radiografia, ecografia, electrocardiograma, examen_fisico, resonancia)
 - "clasificacion": región o enfoque (torax, abdominal, extremidades, cardiaca, etc.) si aplica
 - "subclasificacion": hallazgo específico (neumonia, colelitiasis, normal, etc.) o null si no se menciona
+- Si el diagnostico no tiene relación directa con un examen específico, elige el examen con el caso normal.
 - Los archivos disponibles son:
 examenes/
 ├── ecografia/
@@ -365,10 +366,10 @@ examenes/
 │       └── quiste_ovarico/
 │
 ├── electrocardiograma/
-│   ├── bradicardia/
+│   ├── normal/
 │   ├── fibrilacion_auricular/
 │   ├── infarto/
-│   ├── normal/
+│   ├── bradicardia/
 │   └── taquicardia/
 │
 ├── examen_fisico/
