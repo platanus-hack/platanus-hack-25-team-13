@@ -14,13 +14,44 @@ export async function POST(req: Request) {
         nivel_dificultad?: "facil" | "medio" | "dificil";
       };
 
-    // Map nivel_dificultad to difficulty
     const difficultyMap: Record<string, "easy" | "medium" | "hard"> = {
       facil: "easy",
       medio: "medium",
       dificil: "hard",
     };
 
+    const response = await fetch(
+      "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": process.env.ELEVENLABS_API_KEY || "",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("❌ Error al generar token:", response.status, response.statusText);
+      const errorData = await response.text();
+      console.error("Detalles del error:", errorData);
+      return NextResponse.json(
+        { error: `Error al generar token de Eleven Labs: ${response.statusText}` },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    const token = data.token;
+    
+    if (!token) {
+      console.error("❌ No se recibió token en la respuesta");
+      return NextResponse.json(
+        { error: "Error generating token to ElevenLabs" },
+        { status: 500 }
+      );
+    }
+
+    console.log("✅ Token generado exitosamente");
     const difficulty = difficultyMap[nivel_dificultad] || "medium";
     const { simulation, initialMessage } =
       await SimulationEngine.createSimulation({
@@ -31,6 +62,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
+        sut: token,
         data: {
           simulationId: simulation.id,
           initialMessage,
