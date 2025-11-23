@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
@@ -18,7 +18,7 @@ import { useAnamnesis } from "@/hooks/useAnamnesis";
 import { useAnamnesisMessages } from "@/hooks/useAnamnesisMessages";
 import { supabase } from "@/lib/supabase";
 
-export default function AnamnesisPage() {
+function AnamnesisPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -843,4 +843,10 @@ export default function AnamnesisPage() {
   );
 }
 
-
+export default function AnamnesisPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Cargando...</div>}>
+      <AnamnesisPageContent />
+    </Suspense>
+  );
+}

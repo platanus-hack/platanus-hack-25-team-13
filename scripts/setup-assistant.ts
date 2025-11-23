@@ -79,6 +79,17 @@ async function setupAssistant() {
     // 4. Crear el Assistant con las instrucciones de generación de casos
     console.log("🤖 Creando Assistant...");
 
+    // Si hay archivos, crear el vector store primero
+    let vectorStoreId: string | undefined = undefined;
+    if (fileIds.length > 0) {
+      const vectorStore = await openai.vectorStores.create({
+        name: "MINSAL Documents",
+        file_ids: fileIds,
+      });
+      vectorStoreId = vectorStore.id;
+      console.log(`   ✅ Vector Store creado: ${vectorStoreId}`);
+    }
+
     const assistant = await openai.beta.assistants.create({
       name: "MedSim Case Generator",
       model: "gpt-4-turbo-preview",
@@ -105,15 +116,11 @@ IMPORTANTE:
 - Respeta la estructura JSON solicitada
 - No generes valores extremos o fisiológicamente imposibles
 - Usa información de los documentos cuando esté disponible`,
-      tools: fileIds.length > 0 ? [{ type: "file_search" }] : [],
-      tool_resources: fileIds.length > 0
+      tools: vectorStoreId ? [{ type: "file_search" }] : [],
+      tool_resources: vectorStoreId
         ? {
           file_search: {
-            vector_stores: [
-              {
-                file_ids: fileIds,
-              },
-            ],
+            vector_store_ids: [vectorStoreId],
           },
         }
         : undefined,
@@ -213,14 +220,17 @@ async function updateAssistantFiles() {
     console.log();
     console.log("🔄 Actualizando Assistant...");
 
+    // Primero crear el vector store (fuera de beta)
+    const vectorStore = await openai.vectorStores.create({
+      name: "MINSAL Documents",
+      file_ids: fileIds,
+    });
+
+    // Luego actualizar el assistant con el vector store ID
     await openai.beta.assistants.update(assistantId, {
       tool_resources: {
         file_search: {
-          vector_stores: [
-            {
-              file_ids: fileIds,
-            },
-          ],
+          vector_store_ids: [vectorStore.id],
         },
       },
     });

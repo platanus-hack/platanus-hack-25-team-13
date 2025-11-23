@@ -92,7 +92,9 @@ async function waitForRunCompletion(
   delayMs = 1000
 ): Promise<OpenAI.Beta.Threads.Runs.Run> {
   for (let i = 0; i < maxAttempts; i++) {
-    const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+    const run = await openai.beta.threads.runs.retrieve(runId, {
+      thread_id: threadId,
+    });
 
     if (run.status === "completed") {
       return run;
