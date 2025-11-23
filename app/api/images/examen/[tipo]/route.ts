@@ -7,10 +7,10 @@ import { NextResponse } from "next/server";
  */
 export async function GET(
   req: Request,
-  { params }: { params: { tipo: string } }
+  { params }: { params: Promise<{ tipo: string }> }
 ) {
   try {
-    const { tipo } = params;
+    const { tipo } = await params;
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id") || "default";
 
