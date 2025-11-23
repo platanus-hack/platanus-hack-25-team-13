@@ -1,4 +1,15 @@
 {
-  "project-name": "<FILL THIS>",
-  "project-description-spanish": "<FILL THIS>"
+  "project-name": "MedSim",
+  "project-description-spanish": "
+Es un simulador clínico interactivo con IA que genera casos médicos realistas, alineados con las normas del MINSAL.
+Permite al estudiante entrevistar a un paciente virtual por texto o voz, solicitar exámenes con imágenes 
+reales (radiografías, ecografías, ECG, etc.) y recibir un feedback automático, con notas del 1 al 7 y recomendaciones de mejora.
+
+La plataforma ayuda a practicar habilidades clínicas como:
+- razonamiento diagnóstico
+- interrogatorio dirigido
+- interpretación de exámenes
+- comunicación con el paciente
+
+Es una herramienta rápida, accesible y segura para entrenar casos clínicos sin necesidad de pacientes reales.  "
 }
