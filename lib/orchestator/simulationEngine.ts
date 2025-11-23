@@ -1,4 +1,5 @@
-import {
+import { v4 as uuidv4 } from "uuid";
+import type {
   Simulation,
   ClinicalCase,
   PatientContext,
@@ -7,18 +8,23 @@ import {
 } from "@/types/case";
 import {
   generateClinicalCase,
-  CaseCreatorOptions,
+  type CaseCreatorOptions,
 } from "@/lib/agents/caseCreatorAgent";
 import {
   generateInitialGreeting,
   generatePatientResponse,
+  generateExamPresentationResponse,
 } from "@/lib/agents/patientAgent";
 import {
   decideAction,
-  SystemAction,
-  DecisionResult,
+  type SystemAction,
+  type DecisionResult,
 } from "@/lib/agents/decisionAgent";
 import { generateFeedback } from "@/lib/agents/feedbackAgent";
+import {
+  processExamRequest,
+  type ExamResult,
+} from "@/lib/agents/examAgent";
 import { generateCaseWithRAG } from "@/lib/assistant";
 import { caseGenerationPrompts } from "@/lib/prompts";
 
@@ -67,7 +73,6 @@ export class SimulationEngine {
   ): Promise<{ simulation: Simulation; initialMessage: string }> {
     try {
       // Step 1: Generate clinical case
-      // If specialty is APS, use RAG with Assistant API
       let clinicalCase: ClinicalCase;
       const specialty = options.specialty || "medicina_interna";
       const difficulty = options.difficulty || "medium";
@@ -113,7 +118,7 @@ ${caseGenerationPrompts.user()}`;
           throw new Error("No se recibió respuesta del modelo");
         }
 
-        // Extraer el JSON de la respuesta (puede venir con texto adicional)
+        // Extraer el JSON de la respuesta
         const jsonMatch = output.match(/\{[\s\S]*\}/);
         const jsonString = jsonMatch ? jsonMatch[0] : output;
 
@@ -126,11 +131,9 @@ ${caseGenerationPrompts.user()}`;
           clinicalCase.id = `case-aps-${Date.now()}`;
         }
 
-        // Añadir subcategoría al caso
         clinicalCase.aps_subcategoria =
           subcategoria as ClinicalCase["aps_subcategoria"];
       } else {
-        // For other specialties, use the standard case creator
         clinicalCase = await generateClinicalCase(options);
       }
 
@@ -152,6 +155,7 @@ ${caseGenerationPrompts.user()}`;
             timestamp: new Date(),
           },
         ],
+        requestedExams: [],
         status: "active",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -178,6 +182,7 @@ ${caseGenerationPrompts.user()}`;
     actionTaken: SystemAction;
     response?: string;
     feedback?: FeedbackResult;
+    examResult?: ExamResult;
     reasoning: string;
     timestamp: Date;
   }> {
@@ -211,6 +216,7 @@ ${caseGenerationPrompts.user()}`;
 
       let response: string | undefined;
       let feedback: FeedbackResult | undefined;
+      let examResult: ExamResult | undefined;
 
       // Step 3: Execute the decided action
       switch (decision.action) {
@@ -230,6 +236,60 @@ ${caseGenerationPrompts.user()}`;
           };
           simulation.chatHistory.push(patientMessage);
           response = patientResponse.message;
+          break;
+
+        case "request_exam":
+          // Process exam request
+          if (!decision.examRequest) {
+            response =
+              "Lo siento, no pude procesar su solicitud de examen. Por favor especifique qué tipo de examen necesita.";
+            break;
+          }
+
+          // Build conversation context for the exam agent
+          const recentMessages = simulation.chatHistory.slice(-5);
+          const conversationContext = recentMessages
+            .map(
+              (msg) =>
+                `${msg.role === "user" ? "Estudiante" : "Paciente"}: ${
+                  msg.content
+                }`
+            )
+            .join("\n");
+
+          // Process the exam request
+          examResult = await processExamRequest(
+            decision.examRequest,
+            conversationContext
+          );
+
+          // Generate patient response (patient presents the exam)
+          response = await generateExamPresentationResponse(
+            simulation.clinicalCase,
+            decision.examRequest.tipo,
+            examResult.success
+          );
+
+          // Add exam to requested exams history
+          if (!simulation.requestedExams) {
+            simulation.requestedExams = [];
+          }
+          simulation.requestedExams.push({
+            tipo: decision.examRequest.tipo,
+            clasificacion: decision.examRequest.clasificacion,
+            subclasificacion: decision.examRequest.subclasificacion,
+            imageUrl: examResult.imageUrl,
+            requestedAt: new Date(),
+            found: examResult.success,
+          });
+
+          // Add patient response to chat history
+          const examMessage: ChatMessage = {
+            role: "assistant",
+            content: response,
+            timestamp: new Date(),
+          };
+          simulation.chatHistory.push(examMessage);
           break;
 
         case "submit_diagnosis":
@@ -265,6 +325,7 @@ ${caseGenerationPrompts.user()}`;
         actionTaken: decision.action,
         response,
         feedback,
+        examResult,
         reasoning: decision.reasoning,
         timestamp: new Date(),
       };
@@ -275,66 +336,7 @@ ${caseGenerationPrompts.user()}`;
   }
 
   /**
-   * @deprecated Use processMessage instead for intelligent routing
-   * Sends a message from the doctor to the patient
-   * Returns the patient's response
-   */
-  static async sendMessage(
-    simulationId: string,
-    message: string
-  ): Promise<{ response: string; timestamp: Date }> {
-    const simulation = simulations.get(simulationId);
-
-    if (!simulation) {
-      throw new Error(
-        "Simulation not found. It may have expired or been deleted."
-      );
-    }
-
-    if (simulation.status !== "active") {
-      throw new Error("This simulation is no longer active.");
-    }
-
-    try {
-      // Add doctor's message to history
-      const doctorMessage: ChatMessage = {
-        role: "user",
-        content: message,
-        timestamp: new Date(),
-      };
-      simulation.chatHistory.push(doctorMessage);
-
-      // Generate patient response using the patient agent
-      const patientResponse = await generatePatientResponse(
-        simulation.clinicalCase,
-        simulation.chatHistory,
-        message
-      );
-
-      // Add patient's response to history
-      const patientMessage: ChatMessage = {
-        role: "assistant",
-        content: patientResponse.message,
-        timestamp: patientResponse.timestamp,
-      };
-      simulation.chatHistory.push(patientMessage);
-
-      // Update simulation
-      simulation.updatedAt = new Date();
-      simulations.set(simulationId, simulation);
-
-      return {
-        response: patientResponse.message,
-        timestamp: patientResponse.timestamp,
-      };
-    } catch (error) {
-      console.error("Error sending message:", error);
-      throw new Error("Failed to get patient response. Please try again.");
-    }
-  }
-
-  /**
-   * Retrieves a simulation by ID
+   * Gets a simulation by ID
    */
   static getSimulation(
     simulationId: string,
@@ -359,6 +361,34 @@ ${caseGenerationPrompts.user()}`;
     }
 
     return simulation;
+  }
+
+  /**
+   * Gets all active simulations
+   */
+  static getAllSimulations(): Simulation[] {
+    return Array.from(simulations.values());
+  }
+
+  /**
+   * Deletes a simulation
+   */
+  static deleteSimulation(simulationId: string): boolean {
+    return simulations.delete(simulationId);
+  }
+
+  /**
+   * Updates simulation status
+   */
+  static updateSimulationStatus(
+    simulationId: string,
+    status: "active" | "completed" | "abandoned"
+  ): void {
+    const simulation = simulations.get(simulationId);
+    if (simulation) {
+      simulation.status = status;
+      simulation.updatedAt = new Date();
+    }
   }
 
   /**
@@ -409,20 +439,6 @@ ${caseGenerationPrompts.user()}`;
     simulation.updatedAt = new Date();
     simulations.set(simulationId, simulation);
     return true;
-  }
-
-  /**
-   * Deletes a simulation from memory
-   */
-  static deleteSimulation(simulationId: string): boolean {
-    return simulations.delete(simulationId);
-  }
-
-  /**
-   * Gets all active simulations (for debugging/admin purposes)
-   */
-  static getAllSimulations(): Simulation[] {
-    return Array.from(simulations.values());
   }
 }
 

@@ -47,6 +47,9 @@ export async function POST(req: Request) {
         message
       );
 
+      // Get updated simulation to include requested exams
+      const updatedSimulation = SimulationEngine.getSimulation(simulationId, false);
+
       return NextResponse.json({
         success: true,
         data: {
@@ -54,6 +57,8 @@ export async function POST(req: Request) {
           reasoning: result.reasoning,
           response: result.response,
           feedback: result.feedback,
+          examResult: result.examResult,
+          requestedExams: updatedSimulation?.requestedExams || [],
           timestamp: result.timestamp,
         },
       });

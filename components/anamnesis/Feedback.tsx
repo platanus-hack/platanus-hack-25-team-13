@@ -780,7 +780,7 @@ export default function Feedback({ clinicalCase, feedback }: FeedbackProps) {
           </div>
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-200">
             <div className="flex justify-center">
-              <GaugeChart value={notaPromedio} max={5} />
+              <GaugeChart value={notaPromedio} max={7} />
             </div>
             <div className="mt-3 pt-3 border-t border-blue-200">
               <p className="text-xs text-gray-600 text-center">

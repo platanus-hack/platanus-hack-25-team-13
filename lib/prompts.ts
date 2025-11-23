@@ -308,6 +308,7 @@ ACCIONES DISPONIBLES:
 1. "patient_interaction" - El estudiante quiere hablar/preguntar al paciente
 2. "submit_diagnosis" - El estudiante quiere entregar su diagnóstico y recibir feedback
 3. "end_simulation" - El estudiante quiere terminar sin diagnóstico
+4. "request_exam" - El estudiante solicita ver/ordenar/resultados de un examen complementario (imágenes, laboratorio, ECG, etc.)
 
 REGLAS DE DECISIÓN:
 
@@ -329,11 +330,28 @@ REGLAS DE DECISIÓN:
 - Expresa que quiere finalizar sin diagnóstico
 - Dice "ya no quiero continuar", "hasta aquí"
 
+→ "request_exam" cuando:
+- Pide explícitamente un examen, imagen, radiografía, ecografía, laboratorio, electrocardiograma, TAC, etc.
+- Solicita ver resultados, placas o gráficos de un examen previamente ordenado
+- Pregunta por "muéstrame la radiografía", "quiero una ecografía abdominal", "ordena laboratorio completo", etc.
+
+Si eliges "request_exam" DEBES completar el objeto "exam_request" con tu mejor inferencia:
+- "tipo": uno de los tipos disponibles (radiografia, ecografia, electrocardiograma, examen_fisico, resonancia)
+- "clasificacion": región o enfoque (torax, abdominal, extremidades, cardiaca, etc.) si aplica
+- "subclasificacion": hallazgo específico (neumonia, colelitiasis, normal, etc.) o null si no se menciona
+
+Si el estudiante solo dice "radiografía" sin detalles, deduce la región más lógica según el caso clínico o usa "general". Si quiere un examen normal, usa "normal" como subclasificación.
+
 FORMATO DE RESPUESTA (JSON ESTRICTO):
 {
-  "action": "patient_interaction" | "submit_diagnosis" | "end_simulation",
+  "action": "patient_interaction" | "submit_diagnosis" | "end_simulation" | "request_exam",
   "reasoning": "Breve explicación de por qué elegiste esta acción",
-  "extracted_diagnosis": "Solo si action=submit_diagnosis, extrae el diagnóstico mencionado. Sino null"
+  "extracted_diagnosis": "Solo si action=submit_diagnosis, extrae el diagnóstico mencionado. Sino null",
+  "exam_request": {
+    "tipo": "string",
+    "clasificacion": "string | null",
+    "subclasificacion": "string | null"
+  } | null
 }
 
 IMPORTANTE:
@@ -341,6 +359,7 @@ IMPORTANTE:
 - No agregues comentarios ni texto extra
 - La mayoría de mensajes serán "patient_interaction"
 - Solo "submit_diagnosis" si el usuario EXPLÍCITAMENTE menciona su diagnóstico
+- Solo "request_exam" si la intención principal es obtener un examen
   `.trim(),
 
   user: (message: string, conversationContext: string) =>
