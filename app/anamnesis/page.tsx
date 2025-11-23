@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
 import type { ClinicalCase, ChatMessage, RequestedExam, StudentManagementPlan } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
@@ -14,11 +14,16 @@ import ChatImage from "../../components/anamnesis/ChatImage";
 import Stepper from "../../components/Stepper";
 import ManagementPlanModal from "../../components/ManagementPlanModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useAnamnesis } from "@/hooks/useAnamnesis";
+import { useAnamnesisMessages } from "@/hooks/useAnamnesisMessages";
 import { supabase } from "@/lib/supabase";
 
 export default function AnamnesisPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { getAnamnesisById } = useAnamnesis();
+  const { addMessage, getMessages } = useAnamnesisMessages();
   const [currentStep, setCurrentStep] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -38,14 +43,130 @@ export default function AnamnesisPage() {
   const [showManagementModal, setShowManagementModal] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [detectedDiagnosis, setDetectedDiagnosis] = useState<string>("");
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [anamnesisId, setAnamnesisId] = useState<number | null>(null);
 
   // Set mounted to true when component mounts (client-side only)
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Detectar modo revisión desde URL
+  useEffect(() => {
+    const idParam = searchParams.get("id");
+    if (idParam) {
+      const id = parseInt(idParam, 10);
+      if (!isNaN(id)) {
+        setIsReviewMode(true);
+        setAnamnesisId(id);
+        loadReviewData(id);
+      }
+    }
+  }, [searchParams]);
+
+  // Cargar datos de revisión
+  const loadReviewData = async (id: number) => {
+    try {
+      const anamnesis = await getAnamnesisById(id);
+      if (anamnesis) {
+        // Cargar datos del caso desde summary
+        if (anamnesis.summary) {
+          try {
+            const caseData = JSON.parse(anamnesis.summary);
+            const simulationDebug = caseData["simulation-debug"];
+            const clinicalCaseData = simulationDebug?.clinicalCase;
+            const patientInfo = caseData.patientInfo;
+
+            if (clinicalCaseData && patientInfo) {
+              // Construir datos del paciente
+              const sexoCapitalizado = patientInfo.sexo.charAt(0).toUpperCase() + patientInfo.sexo.slice(1);
+              const pacienteDataFromCase = {
+                nombre: `Paciente ${patientInfo.sexo === "femenino" ? "Femenino" : patientInfo.sexo === "masculino" ? "Masculino" : ""}`,
+                edad: patientInfo.edad,
+                sexo: sexoCapitalizado,
+                ocupacion: patientInfo.ocupacion,
+                motivoConsulta: clinicalCaseData.motivo_consulta || "",
+                contextoIngreso: patientInfo.contexto_ingreso || "",
+              };
+              setPacienteData(pacienteDataFromCase);
+
+              // Construir ClinicalCase
+              const fullClinicalCase: ClinicalCase = {
+                id: clinicalCaseData.id || caseData.simulationId || "1",
+                especialidad: caseData.especialidad || clinicalCaseData.especialidad || "aps",
+                nivel_dificultad: caseData.nivel_dificultad || clinicalCaseData.nivel_dificultad || "medio",
+                aps_subcategoria: clinicalCaseData.aps_subcategoria,
+                paciente: {
+                  edad: patientInfo.edad,
+                  sexo: patientInfo.sexo as "masculino" | "femenino" | "otro",
+                  ocupacion: patientInfo.ocupacion,
+                  contexto_ingreso: patientInfo.contexto_ingreso,
+                },
+                motivo_consulta: clinicalCaseData.motivo_consulta || "",
+                sintomas: clinicalCaseData.sintomas || { descripcion_general: "", detalle: [] },
+                antecedentes: {
+                  personales: clinicalCaseData.antecedentes?.personales || [],
+                  familiares: clinicalCaseData.antecedentes?.familiares || [],
+                  farmacos: clinicalCaseData.antecedentes?.farmacos || [],
+                  alergias: clinicalCaseData.antecedentes?.alergias || [],
+                },
+                examen_fisico: clinicalCaseData.examen_fisico || {
+                  signos_vitales: { temperatura: 36.5, frecuencia_cardiaca: 90, presion_arterial: "140/90", frecuencia_respiratoria: 20, saturacion_o2: 98 },
+                  hallazgos_relevantes: [],
+                },
+                examenes: clinicalCaseData.examenes || {},
+                diagnostico_principal: clinicalCaseData.diagnostico_principal || "",
+                diagnosticos_diferenciales: clinicalCaseData.diagnosticos_diferenciales || [],
+                info_oculta: clinicalCaseData.info_oculta || [],
+                info_prohibida: clinicalCaseData.info_prohibida || [],
+                manejo_aps: clinicalCaseData.manejo_aps,
+              };
+              setClinicalCase(fullClinicalCase);
+
+              // Cargar initialMessage si existe
+              if (caseData.initialMessage) {
+                setInitialMessage(caseData.initialMessage);
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing anamnesis summary:", e);
+          }
+        }
+
+        // Cargar feedback si existe
+        if (anamnesis.feedback_data) {
+          setFeedbackData(anamnesis.feedback_data);
+        }
+
+        // Cargar mensajes guardados
+        const savedMessages = await getMessages(id);
+        if (savedMessages && savedMessages.length > 0) {
+          const chatMessages: ChatMessage[] = savedMessages.map((msg) => ({
+            role: msg.role as "user" | "assistant" | "system",
+            content: msg.message,
+            timestamp: msg.created_at ? new Date(msg.created_at) : new Date(),
+          }));
+          setMessages(chatMessages);
+          
+          // Determinar el paso actual basado en los mensajes
+          if (anamnesis.feedback_data) {
+            setCurrentStep(2); // Feedback
+          } else if (chatMessages.length > 0) {
+            setCurrentStep(1); // Consulta
+          } else {
+            setCurrentStep(0); // Antecedentes
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading review data:", error);
+    }
+  };
+
   // Cargar datos del caso generado desde home
   useEffect(() => {
+    if (isReviewMode) return; // No cargar desde sessionStorage si está en modo revisión
+    
     const savedCase = sessionStorage.getItem("generatedCase");
     if (savedCase) {
       try {
@@ -68,6 +189,11 @@ export default function AnamnesisPage() {
           // Guardar publicId y tiempo de inicio
           if (parsedCase.publicId) {
             setPublicId(parsedCase.publicId);
+          }
+          
+          // Guardar anamnesisId si está disponible
+          if (parsedCase.anamnesisId) {
+            setAnamnesisId(parsedCase.anamnesisId);
           }
           
           // Guardar tiempo de inicio para calcular duración
@@ -202,22 +328,31 @@ export default function AnamnesisPage() {
     { title: "Finalizar" },
   ];
 
-  const handleStartConsulta = () => {
+  const handleStartConsulta = async () => {
     setCurrentStep(1);
     setMessages([]);
-    setTimeout(() => {
+    setTimeout(async () => {
       const firstMessage = initialMessage || 
         (finalClinicalCase.motivo_consulta 
           ? finalClinicalCase.motivo_consulta
           : "Hola");
       
-      setMessages([
-        {
-          role: "assistant",
-          content: firstMessage,
-          timestamp: new Date(),
-        },
-      ]);
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: firstMessage,
+        timestamp: new Date(),
+      };
+      
+      setMessages([assistantMessage]);
+      
+      // Guardar mensaje inicial del asistente si tenemos anamnesisId
+      if (anamnesisId) {
+        try {
+          await addMessage(anamnesisId, "assistant", firstMessage);
+        } catch (error) {
+          console.error("Error saving initial assistant message:", error);
+        }
+      }
     }, 2000);
   };
 
@@ -273,6 +408,11 @@ export default function AnamnesisPage() {
   async function handleSend() {
     if (!input.trim() || loading) return;
 
+    // En modo revisión, no permitir enviar mensajes
+    if (isReviewMode) {
+      return;
+    }
+
     // Solo usar engine si tenemos simulationId
     if (!simulationId) {
       console.error("No simulationId available");
@@ -286,6 +426,16 @@ export default function AnamnesisPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    
+    // Guardar mensaje del usuario en Supabase si tenemos anamnesisId
+    if (anamnesisId) {
+      try {
+        await addMessage(anamnesisId, "user", input);
+      } catch (error) {
+        console.error("Error saving user message:", error);
+      }
+    }
+    
     const messageContent = input;
     setInput("");
     setLoading(true);
@@ -315,6 +465,15 @@ export default function AnamnesisPage() {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
+        
+        // Guardar mensaje del asistente en Supabase si tenemos anamnesisId
+        if (anamnesisId) {
+          try {
+            await addMessage(anamnesisId, "assistant", data.data.response);
+          } catch (error) {
+            console.error("Error saving assistant message:", error);
+          }
+        }
 
         // Update requested exams from engine response
         if (data.data.requestedExams && Array.isArray(data.data.requestedExams)) {
@@ -480,7 +639,23 @@ export default function AnamnesisPage() {
     <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
       <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
         <div className="w-full max-w-3xl">
-          <Stepper steps={steps} currentStep={currentStep} />
+          {isReviewMode && (
+            <div className="mb-2 text-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Modo Revisión
+              </span>
+            </div>
+          )}
+          <Stepper 
+            steps={steps} 
+            currentStep={currentStep} 
+            clickable={isReviewMode}
+            onStepClick={isReviewMode ? (stepIndex) => setCurrentStep(stepIndex) : undefined}
+          />
         </div>
       </div>
       
@@ -494,15 +669,24 @@ export default function AnamnesisPage() {
               motivoConsulta={finalPacienteData.motivoConsulta}
               contextoIngreso={finalPacienteData.contextoIngreso}
             />
-            <div className="mt-6">
-              <button
-                onClick={handleStartConsulta}
-                className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
-              >
-                <FaStethoscope className="w-4 h-4" />
-                Comenzar Consulta
-              </button>
-            </div>
+            {!isReviewMode && (
+              <div className="mt-6">
+                <button
+                  onClick={handleStartConsulta}
+                  className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                  <FaStethoscope className="w-4 h-4" />
+                  Comenzar Consulta
+                </button>
+              </div>
+            )}
+            {isReviewMode && (
+              <div className="mt-6">
+                <p className="text-sm text-gray-600 italic">
+                  En modo revisión puedes navegar entre los pasos usando el stepper superior
+                </p>
+              </div>
+            )}
           </div>
         )}
         
@@ -588,9 +772,10 @@ export default function AnamnesisPage() {
                 loading={loading}
                 input={input}
                 onInputChange={setInput}
-                onSend={handleSend}
+                onSend={isReviewMode ? undefined : handleSend}
                 loadingInput={loading}
                 requestedExams={requestedExams}
+                disabled={isReviewMode}
               />
             </div>
           </div>

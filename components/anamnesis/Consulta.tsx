@@ -10,9 +10,10 @@ interface ConsultaProps {
   loading: boolean;
   input: string;
   onInputChange: (value: string) => void;
-  onSend: () => void;
+  onSend?: () => void;
   loadingInput: boolean;
   requestedExams: RequestedExam[];
+  disabled?: boolean;
 }
 
 export default function Consulta({
@@ -23,6 +24,7 @@ export default function Consulta({
   onInputChange,
   onSend,
   loadingInput,
+  disabled = false,
 }: ConsultaProps) {
   const isDev = process.env.NEXT_PUBLIC_DEV === "true";
 
@@ -58,14 +60,17 @@ export default function Consulta({
         </div>
 
         {/* Input del chat */}
-        <div className="flex-shrink-0">
-          <ChatInput
-            input={input}
-            onInputChange={onInputChange}
-            onSend={onSend}
-            loading={loadingInput}
-          />
-        </div>
+        {!disabled && (
+          <div className="flex-shrink-0">
+            <ChatInput
+              input={input}
+              onInputChange={onInputChange}
+              onSend={onSend}
+              loading={loadingInput}
+              disabled={disabled}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

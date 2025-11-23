@@ -89,10 +89,16 @@ export default function Home() {
       const data = await res.json();
       if (data?.success && data?.data) {
         // Guardar el caso en sessionStorage y navegar a anamnesis
-        sessionStorage.setItem("generatedCase", JSON.stringify(data.data));
+        sessionStorage.setItem("generatedCase", JSON.stringify({
+          ...data.data,
+          startTime: new Date().toISOString(), // Guardar tiempo de inicio
+        }));
         // If publicId is returned, log it for sharing
         if (data.data.publicId) {
           console.log("Caso guardado con public_id:", data.data.publicId);
+        }
+        if (data.data.anamnesisId) {
+          console.log("Caso guardado con anamnesisId:", data.data.anamnesisId);
         }
         router.push("/anamnesis");
       } else {
