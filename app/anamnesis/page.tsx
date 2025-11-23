@@ -661,7 +661,7 @@ export default function AnamnesisPage() {
       
       <div className="flex-1 flex flex-col items-center pb-20 pt-4 p-4">
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] mt-4">
+          <div className="flex flex-col items-center justify-center w-full">
             <AntecedentesMedicos
               edad={finalPacienteData.edad}
               sexo={finalPacienteData.sexo}
@@ -786,6 +786,13 @@ export default function AnamnesisPage() {
             <Feedback clinicalCase={finalClinicalCase} feedback={feedbackData} />
           </div>
         )}
+      </div>
+
+      {/* Stepper fixed en la parte inferior */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 py-4 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Stepper steps={steps} currentStep={currentStep} />
+        </div>
       </div>
 
       {/* Modal de Plan de Manejo - Renderizado en un portal */}
