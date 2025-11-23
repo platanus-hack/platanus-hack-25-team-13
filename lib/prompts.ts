@@ -353,6 +353,54 @@ Si eliges "request_exam" DEBES completar el objeto "exam_request" con tu mejor i
 - "tipo": uno de los tipos disponibles (radiografia, ecografia, electrocardiograma, examen_fisico, resonancia)
 - "clasificacion": región o enfoque (torax, abdominal, extremidades, cardiaca, etc.) si aplica
 - "subclasificacion": hallazgo específico (neumonia, colelitiasis, normal, etc.) o null si no se menciona
+- Los archivos disponibles son:
+examenes/
+├── ecografia/
+│   ├── abdominal/
+│   │   ├── colelitiasis/
+│   │   ├── hepatomegalia/
+│   │   └── normal/
+│   └── pelvica/
+│       ├── normal/
+│       └── quiste_ovarico/
+│
+├── electrocardiograma/
+│   ├── bradicardia/
+│   ├── fibrilacion_auricular/
+│   ├── infarto/
+│   ├── normal/
+│   └── taquicardia/
+│
+├── examen_fisico/
+│   ├── garganta/
+│   │   ├── anormal/
+│   │   └── normal/
+│   ├── ojo/
+│   │   ├── anormal/
+│   │   └── normal/
+│   └── piel/
+│       ├── anormal/
+│       └── normal/
+│
+├── radiografia/
+│   ├── abdomen/
+│   │   ├── ileo/
+│   │   ├── normal/
+│   │   └── obstruccion/
+│   ├── extremidades/
+│   │   ├── artritis/
+│   │   ├── fractura/
+│   │   └── normal/
+│   └── torax/
+│       ├── derrame_pleural/
+│       ├── neumonia/
+│       ├── neumotorax/
+│       └── normal/
+│
+└── resonancia\
+    └── cerebral/
+        ├── lesion/
+        └── normal/
 
 Si el estudiante solo dice "radiografía" sin detalles, deduce la región más lógica según el caso clínico o usa "general". Si quiere un examen normal, usa "normal" como subclasificación.
 
