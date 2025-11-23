@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FaStethoscope, FaClock, FaCheckCircle, FaTimesCircle, FaUser, FaArrowRight } from "react-icons/fa";
+import { FaStethoscope, FaClock, FaCheckCircle, FaTimesCircle, FaUser, FaArrowRight, FaMicrophone } from "react-icons/fa";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Dot } from "recharts";
 import LoadingScreen from "../../components/utils/LoadingScreen";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
@@ -321,6 +321,14 @@ export default function Home() {
                         Comenzar a generar el caso clínico
                       </>
                     )}
+                  </button>
+
+                  <button
+                    onClick={() => router.push("/voice-agent")}
+                    className="mt-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                  >
+                    <FaMicrophone className="w-3 h-3" />
+                    Prueba la versión con voz
                   </button>
 
                   {isDev && (
