@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
-import type { ClinicalCase, ChatMessage } from "@/types/case";
+import type { ClinicalCase, ChatMessage, StudentManagementPlan } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
 import Diagnostico from "../../components/anamnesis/Diagnostico";
@@ -11,6 +12,7 @@ import Feedback from "../../components/anamnesis/Feedback";
 import ChatInput from "../../components/anamnesis/ChatInput";
 import ChatImage from "../../components/anamnesis/ChatImage";
 import Stepper from "../../components/Stepper";
+import ManagementPlanModal from "../../components/ManagementPlanModal";
 
 export default function AnamnesisPage() {
   const router = useRouter();
@@ -24,6 +26,14 @@ export default function AnamnesisPage() {
   const [simulationId, setSimulationId] = useState<string | null>(null);
   const [feedbackData, setFeedbackData] = useState<any>(null);
   const [examImageUrl, setExamImageUrl] = useState<string | null>(null);
+  const [showManagementModal, setShowManagementModal] = useState(false);
+  const [detectedDiagnosis, setDetectedDiagnosis] = useState<string>("");
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -286,9 +296,12 @@ export default function AnamnesisPage() {
 
         // Check if diagnosis was submitted
         if (data.data.actionTaken === "submit_diagnosis" && data.data.feedback) {
-          // Save feedback data and move to feedback step
-          setFeedbackData(data.data.feedback);
-          setCurrentStep(2);
+          // Extract diagnosis from feedback or message
+          const diagnosis = data.data.feedback.diagnostico?.estudiante || messageContent;
+          setDetectedDiagnosis(diagnosis);
+          
+          // Show management plan modal instead of going directly to feedback
+          setShowManagementModal(true);
           return;
         }
       } else {
@@ -304,6 +317,45 @@ export default function AnamnesisPage() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSubmitManagementPlan(planData: StudentManagementPlan) {
+    if (!simulationId) return;
+
+    setFeedbackLoading(true);
+    setShowManagementModal(false);
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          simulationId,
+          managementPlan: planData,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error generando feedback");
+      }
+
+      const data = await res.json();
+      
+      if (data.success && data.feedback) {
+        // Save feedback and move to feedback step
+        setFeedbackData(data.feedback);
+        setCurrentStep(2);
+      } else {
+        throw new Error("No se recibió feedback del servidor");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Error enviando plan de manejo");
+      setShowManagementModal(true); // Reabrir el modal en caso de error
+    } finally {
+      setFeedbackLoading(false);
     }
   }
 
@@ -397,7 +449,20 @@ export default function AnamnesisPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Plan de Manejo - Renderizado en un portal */}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <ManagementPlanModal
+          isOpen={showManagementModal}
+          onClose={() => setShowManagementModal(false)}
+          onSubmit={handleSubmitManagementPlan}
+          isAPS={clinicalCase?.especialidad === "aps"}
+          initialDiagnosis={detectedDiagnosis}
+        />,
+        document.body
+      )}
     </div>
   );
 }
+
 
