@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaStethoscope } from "react-icons/fa";
-import type { ClinicalCase, ChatMessage } from "@/types/case";
+import type { ClinicalCase, ChatMessage, RequestedExam } from "@/types/case";
 import AntecedentesMedicos from "../../components/anamnesis/AntecedentesMedicos";
 import Consulta from "../../components/anamnesis/Consulta";
 import Diagnostico from "../../components/anamnesis/Diagnostico";
@@ -24,6 +24,9 @@ export default function AnamnesisPage() {
   const [simulationId, setSimulationId] = useState<string | null>(null);
   const [feedbackData, setFeedbackData] = useState<any>(null);
   const [examImageUrl, setExamImageUrl] = useState<string | null>(null);
+  const [requestedExams, setRequestedExams] = useState<RequestedExam[]>([]);
+  const [currentExamIndex, setCurrentExamIndex] = useState<number>(0);
+  const [showExamViewer, setShowExamViewer] = useState<boolean>(false);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
@@ -284,6 +287,19 @@ export default function AnamnesisPage() {
         };
         setMessages((prev) => [...prev, assistantMessage]);
 
+        // Update requested exams from engine response
+        if (data.data.requestedExams && Array.isArray(data.data.requestedExams)) {
+          setRequestedExams(data.data.requestedExams);
+
+          // Show the latest exam
+          const latestExam = data.data.requestedExams[data.data.requestedExams.length - 1];
+          if (latestExam && latestExam.imageUrl) {
+            setExamImageUrl(latestExam.imageUrl);
+            setCurrentExamIndex(data.data.requestedExams.length - 1);
+            setShowExamViewer(true);
+          }
+        }
+
         // Check if diagnosis was submitted
         if (data.data.actionTaken === "submit_diagnosis" && data.data.feedback) {
           // Save feedback data and move to feedback step
@@ -306,6 +322,40 @@ export default function AnamnesisPage() {
       setLoading(false);
     }
   }
+
+  const handlePreviousExam = () => {
+    if (currentExamIndex > 0 && requestedExams.length > 0) {
+      const newIndex = currentExamIndex - 1;
+      setCurrentExamIndex(newIndex);
+      if (requestedExams[newIndex]?.imageUrl) {
+        setExamImageUrl(requestedExams[newIndex].imageUrl);
+      }
+    }
+  };
+
+  const handleNextExam = () => {
+    if (currentExamIndex < requestedExams.length - 1) {
+      const newIndex = currentExamIndex + 1;
+      setCurrentExamIndex(newIndex);
+      if (requestedExams[newIndex]?.imageUrl) {
+        setExamImageUrl(requestedExams[newIndex].imageUrl);
+      }
+    }
+  };
+
+  const getExamLabel = (exam: RequestedExam): string => {
+    const typeMap: Record<string, string> = {
+      radiografia: "Radiografía",
+      ecografia: "Ecografía",
+      electrocardiograma: "ECG",
+      tomografia: "Tomografía",
+      resonancia: "Resonancia",
+      laboratorio: "Laboratorio",
+    };
+    const type = typeMap[exam.tipo] || exam.tipo;
+    const classification = exam.clasificacion ? ` - ${exam.clasificacion}` : "";
+    return `${type}${classification}`;
+  };
 
   return (
     <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
@@ -339,21 +389,31 @@ export default function AnamnesisPage() {
         
         {currentStep === 1 && (
           <div className="w-[90vw] flex gap-6 h-[calc(100vh-200px)] ">
-            <div className="w-[30%] flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] h-full flex items-center justify-center">
-                {examImageUrl ? (
-                  <ChatImage 
-                    imageType={examImageUrl}
-                    imageBasePath=""
-                    step={1}
-                    infoText="Examen médico"
-                    enableZoom={true}
-                  />
+            <div className="w-[30%] flex-shrink-0 flex flex-col gap-3">
+              <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] flex-1 flex items-center justify-center relative">
+                {showExamViewer && examImageUrl ? (
+                  <>
+                    <ChatImage
+                      imageType={examImageUrl}
+                      imageBasePath=""
+                      step={1}
+                      infoText={requestedExams.length > 0 && requestedExams[currentExamIndex]
+                        ? getExamLabel(requestedExams[currentExamIndex])
+                        : "Examen médico"}
+                      enableZoom={true}
+                    />
+                    <button
+                      onClick={() => setShowExamViewer(false)}
+                      className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md"
+                    >
+                      ✕ Cerrar
+                    </button>
+                  </>
                 ) : (
-                  <ChatImage 
-                    step={1} 
+                  <ChatImage
+                    step={1}
                     loading={loading}
-                    lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant") 
+                    lastMessageRole={messages.length > 0 && (messages[messages.length - 1].role === "user" || messages[messages.length - 1].role === "assistant")
                       ? (messages[messages.length - 1].role as "user" | "assistant")
                       : undefined}
                     lastMessageContent={
@@ -366,26 +426,52 @@ export default function AnamnesisPage() {
                   />
                 )}
               </div>
+
+              {/* Button to reopen exam viewer when closed */}
+              {!showExamViewer && requestedExams.length > 0 && (
+                <button
+                  onClick={() => setShowExamViewer(true)}
+                  className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md"
+                >
+                  Ver Exámenes ({requestedExams.length})
+                </button>
+              )}
+
+              {/* Exam Navigation */}
+              {showExamViewer && requestedExams.length > 1 && (
+                <div className="bg-white rounded-lg shadow-lg border-[0.5px] border-[#1098f7] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={handlePreviousExam}
+                      disabled={currentExamIndex === 0}
+                      className="px-3 py-1.5 bg-[#1098f7] text-white rounded-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#0d7fd6] transition-colors text-sm font-medium"
+                    >
+                      ← Anterior
+                    </button>
+                    <span className="text-xs text-gray-600 font-medium">
+                      Examen {currentExamIndex + 1} de {requestedExams.length}
+                    </span>
+                    <button
+                      onClick={handleNextExam}
+                      disabled={currentExamIndex === requestedExams.length - 1}
+                      className="px-3 py-1.5 bg-[#1098f7] text-white rounded-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#0d7fd6] transition-colors text-sm font-medium"
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="w-[70%]">
-              <Consulta 
-                clinicalCase={finalClinicalCase} 
-                messages={messages} 
-                loading={loading} 
-                input={input} 
-                onInputChange={setInput} 
-                onSend={handleSend} 
+              <Consulta
+                clinicalCase={finalClinicalCase}
+                messages={messages}
+                loading={loading}
+                input={input}
+                onInputChange={setInput}
+                onSend={handleSend}
                 loadingInput={loading}
-                onExamImageGenerated={(imageUrl) => {
-                  setExamImageUrl(imageUrl);
-                  // Agregar mensaje al chat indicando que se generó un examen
-                  const examMessage: ChatMessage = {
-                    role: "assistant",
-                    content: "Aquí está el resultado de su examen médico.",
-                    timestamp: new Date(),
-                  };
-                  setMessages((prev) => [...prev, examMessage]);
-                }}
+                requestedExams={requestedExams}
               />
             </div>
           </div>
