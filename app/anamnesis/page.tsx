@@ -30,6 +30,12 @@ export default function AnamnesisPage() {
   const [examImageUrl, setExamImageUrl] = useState<string | null>(null);
   const [caseStartTime, setCaseStartTime] = useState<Date | null>(null);
   const [publicId, setPublicId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted to true when component mounts (client-side only)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cargar datos del caso generado desde home
   useEffect(() => {
