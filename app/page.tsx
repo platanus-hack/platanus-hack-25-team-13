@@ -61,12 +61,6 @@ export default function LandingPage() {
 
           {/* Selector de Especialidad - Centro de la pantalla */}
           <div className="max-w-xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-[#001c55] mb-3">
-                Comienza tu simulación
-              </h2>
-            </div>
-
             <div className="space-y-6">
               {/* Dropdown de Especialidad */}
               <div className="transform transition-all duration-500">
