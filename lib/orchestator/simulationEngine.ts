@@ -100,10 +100,10 @@ export class SimulationEngine {
         const urgenciaSubcategorias = [
           "cardiovascular",
           "respiratorio",
-          "neurologico",
+          //"neurologico",
           "gastrointestinal",
           "traumatologico",
-          "metabolico",
+          //"metabolico",
         ];
         subcategoria = urgenciaSubcategorias[
           Math.floor(Math.random() * urgenciaSubcategorias.length)

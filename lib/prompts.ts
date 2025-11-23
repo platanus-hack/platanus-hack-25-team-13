@@ -345,7 +345,7 @@ REGLAS DE DECISIÓN:
 - Dice "ya no quiero continuar", "hasta aquí"
 
 → "request_exam" cuando:
-- Pide explícitamente un examen, imagen, radiografía, ecografía, laboratorio, electrocardiograma, TAC, etc.
+- Pide explícitamente un examen, imagen, radiografía, ecografía, laboratorio, electrocardiograma, TAC, examen físico etc.
 - Solicita ver resultados, placas o gráficos de un examen previamente ordenado
 - Pregunta por "muéstrame la radiografía", "quiero una ecografía abdominal", "ordena laboratorio completo", etc.
 
