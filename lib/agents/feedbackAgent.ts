@@ -1,6 +1,6 @@
 import { createChatCompletion } from "@/lib/openai";
 import { feedbackPrompts } from "@/lib/prompts";
-import type { ClinicalCase, ChatMessage, FeedbackResult } from "@/types/case";
+import type { ClinicalCase, ChatMessage, FeedbackResult, StudentManagementPlan } from "@/types/case";
 
 /**
  * Feedback Agent
@@ -8,12 +8,28 @@ import type { ClinicalCase, ChatMessage, FeedbackResult } from "@/types/case";
  */
 
 /**
+ * Removes source references from text (e.g., 【4:6†source】)
+ */
+function cleanSourceReferences(text: string): string {
+  // Remove references in the format 【number:number†source】
+  return text.replace(/【\d+:\d+†source】/g, '').trim();
+}
+
+/**
+ * Cleans source references from array of strings
+ */
+function cleanArrayReferences(arr: string[]): string[] {
+  return arr.map(item => cleanSourceReferences(item));
+}
+
+/**
  * Generates comprehensive feedback for a completed simulation
  */
 export async function generateFeedback(
   clinicalCase: ClinicalCase,
   chatHistory: ChatMessage[],
-  studentDiagnosis: string
+  studentDiagnosis: string,
+  managementPlan?: StudentManagementPlan
 ): Promise<FeedbackResult> {
   // Build conversation transcript
   const conversationText = chatHistory
@@ -26,7 +42,8 @@ export async function generateFeedback(
   const systemPrompt = feedbackPrompts.system(
     clinicalCase,
     conversationText,
-    studentDiagnosis
+    studentDiagnosis,
+    managementPlan
   );
   const userPrompt = feedbackPrompts.user();
 
@@ -48,12 +65,15 @@ export async function generateFeedback(
     // Validate and structure the response
     const feedback: FeedbackResult = {
       puntajes: {
-        motivo_consulta: feedbackData.puntajes?.motivo_consulta || 1,
-        sintomas_relevantes: feedbackData.puntajes?.sintomas_relevantes || 1,
+        anamnesis_motivo_consulta: feedbackData.puntajes?.anamnesis_motivo_consulta || 1,
+        identificacion_sintomas: feedbackData.puntajes?.identificacion_sintomas || 1,
         antecedentes: feedbackData.puntajes?.antecedentes || 1,
-        red_flags: feedbackData.puntajes?.red_flags || 1,
         razonamiento_clinico: feedbackData.puntajes?.razonamiento_clinico || 1,
-        comunicacion: feedbackData.puntajes?.comunicacion || 1,
+        comunicacion_empatia: feedbackData.puntajes?.comunicacion_empatia || 1,
+        // Incluir puntaje de manejo/derivación si es caso APS
+        ...(clinicalCase.especialidad === "aps" && feedbackData.puntajes?.manejo_derivacion !== undefined
+          ? { manejo_derivacion: feedbackData.puntajes.manejo_derivacion }
+          : {}),
       },
       comentarios: {
         fortalezas: feedbackData.comentarios?.fortalezas || [],
@@ -66,6 +86,31 @@ export async function generateFeedback(
         diagnostico_real: clinicalCase.diagnostico_principal,
         comentario: feedbackData.diagnostico?.comentario || "",
       },
+      // Incluir evaluación de manejo si es caso APS
+      ...(clinicalCase.especialidad === "aps" && feedbackData.manejo
+        ? {
+            manejo: {
+              derivacion_correcta: feedbackData.manejo.derivacion_correcta || false,
+              tipo_derivacion_adecuado: feedbackData.manejo.tipo_derivacion_adecuado || false,
+              manejo_inicial_apropiado: feedbackData.manejo.manejo_inicial_apropiado || false,
+              considero_ingreso_programa: feedbackData.manejo.considero_ingreso_programa,
+              metas_terapeuticas_definidas: feedbackData.manejo.metas_terapeuticas_definidas,
+              educacion_y_seguimiento_apropiados: feedbackData.manejo.educacion_y_seguimiento_apropiados,
+              considero_factores_psicosociales: feedbackData.manejo.considero_factores_psicosociales,
+              comentario: cleanSourceReferences(feedbackData.manejo.comentario || ""),
+              recomendaciones_especificas: feedbackData.manejo.recomendaciones_especificas
+                ? {
+                    derivacion: cleanSourceReferences(feedbackData.manejo.recomendaciones_especificas.derivacion || ""),
+                    programa_aps: cleanSourceReferences(feedbackData.manejo.recomendaciones_especificas.programa_aps || ""),
+                    metas_terapeuticas: cleanArrayReferences(feedbackData.manejo.recomendaciones_especificas.metas_terapeuticas || []),
+                    manejo_cesfam: cleanArrayReferences(feedbackData.manejo.recomendaciones_especificas.manejo_cesfam || []),
+                    educacion_paciente: cleanArrayReferences(feedbackData.manejo.recomendaciones_especificas.educacion_paciente || []),
+                    seguimiento: cleanSourceReferences(feedbackData.manejo.recomendaciones_especificas.seguimiento || ""),
+                  }
+                : undefined,
+            },
+          }
+        : {}),
     };
 
     return feedback;
@@ -85,13 +130,13 @@ export function calculateAverageScore(feedback: FeedbackResult): number {
 }
 
 /**
- * Gets performance level based on average score
+ * Gets performance level based on average score (escala chilena 1.0-7.0)
  */
 export function getPerformanceLevel(averageScore: number): string {
-  if (averageScore >= 4.5) return "Excelente";
-  if (averageScore >= 3.5) return "Bueno";
-  if (averageScore >= 2.5) return "Aceptable";
-  if (averageScore >= 1.5) return "Necesita mejorar";
+  if (averageScore >= 6.0) return "Excelente";
+  if (averageScore >= 5.0) return "Bueno";
+  if (averageScore >= 4.0) return "Aceptable";
+  if (averageScore >= 3.0) return "Necesita mejorar";
   return "Insuficiente";
 }
 

@@ -68,14 +68,17 @@ export default function VoiceAgent({ token, caseInfo, onFeedback, onSimulationEn
     }, 15000);
 
     try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      // const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY!;
       const res = await fetch(
-        `http://127.0.0.1:54321/functions/v1/text-to-speech?` +
+        `${supabaseUrl}/functions/v1/text-to-speech?` +
           new URLSearchParams({ text }),
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            Authorization: `Bearer ${anonKey}`,
+            apikey: anonKey,
           },
         }
       );

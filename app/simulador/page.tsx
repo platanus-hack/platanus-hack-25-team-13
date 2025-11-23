@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { ClinicalCase, FeedbackResult } from "@/types/case";
 import ChatBox from "@/components/ChatBox";
@@ -32,18 +32,30 @@ interface Simulation {
 export default function SimuladorPage() {
   const [clinicalCase, setClinicalCase] = useState<ClinicalCaseResponse["data"] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [diagnosticoEstudiante, setDiagnosticoEstudiante] = useState("");
-  const [showDiagnostico, setShowDiagnostico] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackFromEngine, setFeedbackFromEngine] = useState<FeedbackResult | null>(null);
   const [especialidad, setEspecialidad] = useState<ClinicalCase["especialidad"]>("aps");
   const [nivelDificultad, setNivelDificultad] = useState<ClinicalCase["nivel_dificultad"]>("medio");
   const router = useRouter();
 
+  // Cargar caso generado desde home si existe
+  useEffect(() => {
+    const savedCase = sessionStorage.getItem("generatedCase");
+    if (savedCase) {
+      try {
+        const parsedCase = JSON.parse(savedCase);
+        setClinicalCase(parsedCase);
+        setEspecialidad(parsedCase.especialidad || "aps");
+        setNivelDificultad(parsedCase.nivel_dificultad || "medio");
+        sessionStorage.removeItem("generatedCase");
+      } catch (e) {
+        console.error("Error parsing saved case:", e);
+      }
+    }
+  }, []);
+
   async function handleGenerateCase() {
     setLoading(true);
-    setShowDiagnostico(false);
-    setDiagnosticoEstudiante("");
     try {
       const res = await fetch("/api/generar-caso", {
         method: "POST",
@@ -67,74 +79,16 @@ export default function SimuladorPage() {
 
   function handleFeedbackReceived(feedback: FeedbackResult) {
     setFeedbackFromEngine(feedback);
-    // Guardar en sessionStorage para la página de resultados
+    // Guardar en sessionStorage para la página de anamnesis
     const simulationDebug = clinicalCase?.["simulation-debug"];
     sessionStorage.setItem("feedbackData", JSON.stringify({
       feedback,
       clinicalCase: simulationDebug?.clinicalCase || null,
-      diagnosticoEstudiante: diagnosticoEstudiante || feedback.diagnostico.estudiante,
+      diagnosticoEstudiante: feedback.diagnostico.estudiante,
     }));
     
-    // Redirigir automáticamente a resultados cuando se recibe feedback
-    router.push("/resultados");
-  }
-
-  async function handleFinalizarYFeedback() {
-    if (!clinicalCase) {
-      alert("Por favor genera un caso primero");
-      return;
-    }
-
-    // Si ya tenemos feedback del engine (diagnóstico enviado por chat), usarlo
-    if (feedbackFromEngine) {
-      const simulationDebug = clinicalCase?.["simulation-debug"];
-      sessionStorage.setItem("feedbackData", JSON.stringify({
-        feedback: feedbackFromEngine,
-        clinicalCase: simulationDebug?.clinicalCase || null,
-        diagnosticoEstudiante: diagnosticoEstudiante || feedbackFromEngine.diagnostico.estudiante,
-      }));
-      router.push("/resultados");
-      return;
-    }
-
-    // Si no hay feedback y hay diagnóstico en el formulario, enviarlo automáticamente por chat
-    if (!diagnosticoEstudiante.trim()) {
-      alert("Por favor ingresa un diagnóstico antes de finalizar");
-      return;
-    }
-
-    // Enviar el diagnóstico al engine para que genere feedback automáticamente
-    setFeedbackLoading(true);
-    try {
-      const res = await fetch("/api/engine", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          simulationId: clinicalCase.simulationId,
-          message: `Mi diagnóstico es: ${diagnosticoEstudiante}`,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Error enviando diagnóstico");
-      }
-
-      const data = await res.json();
-      
-      if (data.success && data.data?.feedback) {
-        // El feedback ya se manejará en handleFeedbackReceived
-        // pero también lo guardamos aquí por si acaso
-        handleFeedbackReceived(data.data.feedback);
-      } else {
-        throw new Error("No se recibió feedback del engine");
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : "Error enviando diagnóstico");
-    } finally {
-      setFeedbackLoading(false);
-    }
+    // Redirigir automáticamente a anamnesis cuando se recibe feedback
+    router.push("/anamnesis");
   }
 
   return (
@@ -229,37 +183,6 @@ export default function SimuladorPage() {
                 )}
               </div>
             </div>
-            
-            <div className="border border-[#1098f7] border-opacity-20 rounded-lg p-4 bg-white shadow-sm">
-              <h3 className="font-semibold mb-3 text-[#001c55]">Acciones</h3>
-              <button 
-                onClick={() => setShowDiagnostico(!showDiagnostico)}
-                className="w-full border border-[#1098f7] px-4 py-2 rounded-lg mb-2 hover:bg-[#1098f7] hover:bg-opacity-10 transition-colors text-[#001c55]"
-              >
-                {showDiagnostico ? "Ocultar" : "Ingresar"} Diagnóstico Final
-              </button>
-            </div>
-
-            {showDiagnostico && (
-              <div className="border border-[#1098f7] border-opacity-20 rounded-lg p-4 bg-white shadow-sm">
-                <h3 className="font-semibold mb-3 text-[#001c55]">
-                  Tu Diagnóstico
-                </h3>
-                <textarea
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[120px] focus:outline-none focus:border-[#1098f7] focus:ring-1 focus:ring-[#1098f7]"
-                  value={diagnosticoEstudiante}
-                  onChange={(e) => setDiagnosticoEstudiante(e.target.value)}
-                  placeholder="Escribe tu diagnóstico principal y diagnósticos diferenciales..."
-                />
-                <button
-                  onClick={handleFinalizarYFeedback}
-                  disabled={feedbackLoading || !diagnosticoEstudiante.trim()}
-                  className="w-full mt-3 bg-emerald-600 text-white px-4 py-3 rounded-lg disabled:opacity-50 hover:bg-emerald-700 transition-colors font-medium"
-                >
-                  {feedbackLoading ? "Generando evaluación..." : "Finalizar y obtener feedback"}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}

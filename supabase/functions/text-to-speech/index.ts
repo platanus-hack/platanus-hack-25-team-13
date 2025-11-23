@@ -6,7 +6,7 @@ import * as hash from "npm:object-hash";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
 const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
@@ -14,7 +14,10 @@ if (!apiKey) throw new Error("Missing ELEVENLABS_API_KEY");
 
 const elevenlabs = new ElevenLabsClient({ apiKey });
 
-async function uploadAudioToStorage(stream: ReadableStream, requestHash: string) {
+async function uploadAudioToStorage(
+  stream: ReadableStream,
+  requestHash: string,
+) {
   const { data, error } = await supabase.storage
     .from("audio")
     .upload(`${requestHash}.mp3`, stream, {
@@ -27,6 +30,15 @@ async function uploadAudioToStorage(stream: ReadableStream, requestHash: string)
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*", // o "http://localhost:3000"
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, apikey, content-type, x-client-info, accept, origin, user-agent",
+  };
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
   const url = new URL(req.url);
   const text = url.searchParams.get("text");
   const voiceId = url.searchParams.get("voiceId") ?? "JBFqnCBsd6RMkjVDRZzb";
@@ -34,7 +46,7 @@ Deno.serve(async (req) => {
   if (!text || text.trim() === "") {
     return new Response(JSON.stringify({ error: "text is required" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
@@ -70,15 +82,17 @@ Deno.serve(async (req) => {
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
-        // opcional: CORS si llamas directo desde browser
-        "Access-Control-Allow-Origin": "*",
+        ...corsHeaders,
       },
     });
   } catch (error) {
     console.log("ElevenLabs error", error);
-    return new Response(JSON.stringify({ error: String(error?.message ?? error) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: String(error?.message ?? error) }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 });

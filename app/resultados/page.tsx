@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaCheckCircle, FaTimesCircle, FaStar, FaChartLine, FaRedo } from "react-icons/fa";
+import { FaCheckCircle, FaTimesCircle, FaStar, FaChartLine, FaRedo, FaLightbulb } from "react-icons/fa";
 import type { ClinicalCase } from "@/types/case";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 type FeedbackResult = {
   puntajes: {
-    motivo_consulta: number;
-    sintomas_relevantes: number;
+    anamnesis_motivo_consulta: number;
+    identificacion_sintomas: number;
     antecedentes: number;
-    red_flags: number;
     razonamiento_clinico: number;
-    comunicacion: number;
+    comunicacion_empatia: number;
     manejo_derivacion?: number;
   };
   comentarios: {
@@ -29,13 +30,20 @@ type FeedbackResult = {
   manejo?: {
     derivacion_correcta: boolean;
     tipo_derivacion_adecuado: boolean;
-    identifico_red_flags: boolean;
     manejo_inicial_apropiado: boolean;
     considero_ingreso_programa?: boolean;
     metas_terapeuticas_definidas?: boolean;
     educacion_y_seguimiento_apropiados?: boolean;
     considero_factores_psicosociales?: boolean;
     comentario: string;
+    recomendaciones_especificas?: {
+      derivacion: string;
+      programa_aps: string;
+      metas_terapeuticas: string[];
+      manejo_cesfam: string[];
+      educacion_paciente: string[];
+      seguimiento: string;
+    };
   };
 };
 
@@ -48,15 +56,63 @@ type ResultData = {
 export default function ResultadosPage() {
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const data = sessionStorage.getItem("feedbackData");
+    const caseData = sessionStorage.getItem("generatedCase");
     if (!data) {
       router.push("/simulador");
       return;
     }
-    setResultData(JSON.parse(data));
-  }, [router]);
+    const parsedData = JSON.parse(data);
+    console.log("📊 Feedback data loaded:", parsedData);
+    console.log("📋 Recomendaciones específicas:", parsedData.feedback?.manejo?.recomendaciones_especificas);
+    setResultData(parsedData);
+
+    // Save feedback to database
+    if (user && caseData) {
+      const parsedCase = JSON.parse(caseData);
+      const publicId = parsedCase.publicId;
+      const startTime = parsedCase.createdAt || parsedCase.startTime;
+      
+      if (publicId && startTime) {
+        const endTime = new Date();
+        const startTimeDate = new Date(startTime);
+        const tiempoDemora = Math.floor((endTime.getTime() - startTimeDate.getTime()) / 1000); // segundos
+        
+        const promedioGeneral = Object.values(parsedData.feedback.puntajes as Record<string, number>).reduce(
+          (a: number, b: number) => a + b, 
+          0
+        ) / Object.keys(parsedData.feedback.puntajes).length;
+
+        const diagnosticoFinal = parsedData.feedback.diagnostico.diagnostico_real;
+
+        // Update anamnesis in database
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.access_token) {
+            fetch("/api/update-anamnesis", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                public_id: publicId,
+                calificacion: promedioGeneral,
+                tiempo_demora: tiempoDemora,
+                is_completed: true,
+                diagnostico_final: diagnosticoFinal,
+                feedback_data: parsedData.feedback,
+              }),
+            }).catch((err) => {
+              console.error("Error updating anamnesis:", err);
+            });
+          }
+        });
+      }
+    }
+  }, [router, user]);
 
   if (!resultData) {
     return (
@@ -70,12 +126,11 @@ export default function ResultadosPage() {
   const promedioGeneral = Object.values(feedback.puntajes).reduce((a, b) => a + b, 0) / Object.keys(feedback.puntajes).length;
 
   const puntajeLabels: Record<keyof typeof feedback.puntajes, string> = {
-    motivo_consulta: "Exploración del motivo de consulta",
-    sintomas_relevantes: "Interrogatorio de síntomas",
-    antecedentes: "Evaluación de antecedentes",
-    red_flags: "Detección de red flags",
-    razonamiento_clinico: "Razonamiento clínico",
-    comunicacion: "Comunicación con el paciente",
+    anamnesis_motivo_consulta: "Anamnesis y motivo de consulta",
+    identificacion_sintomas: "Identificación de síntomas y signos",
+    antecedentes: "Antecedentes mórbidos y farmacológicos",
+    razonamiento_clinico: "Razonamiento clínico y diagnóstico diferencial",
+    comunicacion_empatia: "Comunicación efectiva y empatía",
     manejo_derivacion: "Manejo y decisiones de derivación (APS)",
   };
 
@@ -132,145 +187,165 @@ export default function ResultadosPage() {
         {/* Manejo APS - Solo para casos de APS */}
         {feedback.manejo && clinicalCase.especialidad === "aps" && (
           <div className="bg-white rounded-xl shadow-lg p-6 border border-[#1098f7] border-opacity-20">
-            <div className="flex items-start gap-4 mb-4">
-              {feedback.manejo.derivacion_correcta ? (
-                <FaCheckCircle className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
+            <h2 className="text-2xl font-bold text-[#001c55] mb-4 flex items-center gap-2">
+              {feedback.manejo.derivacion_correcta && 
+               feedback.manejo.tipo_derivacion_adecuado && 
+               feedback.manejo.manejo_inicial_apropiado ? (
+                <FaCheckCircle className="text-green-500" />
               ) : (
-                <FaTimesCircle className="w-8 h-8 text-orange-500 flex-shrink-0 mt-1" />
+                <FaTimesCircle className="text-orange-500" />
               )}
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-[#001c55] mb-3">
-                  Manejo en APS y Derivación
-                </h2>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    {feedback.manejo.derivacion_correcta ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500" />
-                    )}
-                    <span className="text-sm">Decisión de derivación correcta</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {feedback.manejo.tipo_derivacion_adecuado ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500" />
-                    )}
-                    <span className="text-sm">Tipo de derivación adecuado</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {feedback.manejo.identifico_red_flags ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500" />
-                    )}
-                    <span className="text-sm">Identificó red flags urgentes</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {feedback.manejo.manejo_inicial_apropiado ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500" />
-                    )}
-                    <span className="text-sm">Manejo inicial apropiado</span>
-                  </div>
-                  {feedback.manejo.considero_ingreso_programa !== undefined && (
-                    <div className="flex items-center gap-2">
-                      {feedback.manejo.considero_ingreso_programa ? (
-                        <FaCheckCircle className="text-green-500" />
-                      ) : (
-                        <FaTimesCircle className="text-red-500" />
-                      )}
-                      <span className="text-sm">Consideró ingreso a programa</span>
-                    </div>
-                  )}
-                  {feedback.manejo.metas_terapeuticas_definidas !== undefined && (
-                    <div className="flex items-center gap-2">
-                      {feedback.manejo.metas_terapeuticas_definidas ? (
-                        <FaCheckCircle className="text-green-500" />
-                      ) : (
-                        <FaTimesCircle className="text-red-500" />
-                      )}
-                      <span className="text-sm">Definió metas terapéuticas</span>
-                    </div>
-                  )}
-                  {feedback.manejo.educacion_y_seguimiento_apropiados !== undefined && (
-                    <div className="flex items-center gap-2">
-                      {feedback.manejo.educacion_y_seguimiento_apropiados ? (
-                        <FaCheckCircle className="text-green-500" />
-                      ) : (
-                        <FaTimesCircle className="text-red-500" />
-                      )}
-                      <span className="text-sm">Educación y seguimiento apropiados</span>
-                    </div>
-                  )}
-                  {feedback.manejo.considero_factores_psicosociales !== undefined && (
-                    <div className="flex items-center gap-2">
-                      {feedback.manejo.considero_factores_psicosociales ? (
-                        <FaCheckCircle className="text-green-500" />
-                      ) : (
-                        <FaTimesCircle className="text-red-500" />
-                      )}
-                      <span className="text-sm">Consideró factores psicosociales</span>
-                    </div>
-                  )}
-                </div>
+              Evaluación de Manejo en APS
+            </h2>
 
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded">
-                  <p className="text-sm text-gray-700">{feedback.manejo.comentario}</p>
+            {/* Evaluación de lo que hizo el estudiante */}
+            <div className="mb-4">
+              <h3 className="font-semibold text-gray-700 mb-3">Tu desempeño:</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  {feedback.manejo.derivacion_correcta ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span className="text-sm">Decisión de derivación correcta</span>
                 </div>
-
-                {clinicalCase.manejo_aps && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="font-semibold text-[#001c55] mb-2">Información del caso (referencia):</h3>
-                    <div className="space-y-2 text-sm">
-                      {clinicalCase.manejo_aps.criterio_ingreso_programa.aplica && (
-                        <p><strong>Programa:</strong> {clinicalCase.manejo_aps.criterio_ingreso_programa.programa}</p>
-                      )}
-                      {clinicalCase.manejo_aps.metas_terapeuticas && clinicalCase.manejo_aps.metas_terapeuticas.length > 0 && (
-                        <div>
-                          <strong>Metas terapéuticas:</strong>
-                          <ul className="list-disc ml-5 mt-1">
-                            {clinicalCase.manejo_aps.metas_terapeuticas.map((meta, i) => (
-                              <li key={i}>{meta}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {clinicalCase.manejo_aps.tiempos_legales_y_oportunidad?.es_ges && (
-                        <p><strong>GES:</strong> Sí - {clinicalCase.manejo_aps.tiempos_legales_y_oportunidad.tiempos_requeridos?.join(", ")}</p>
-                      )}
-                      <p><strong>Requiere derivación:</strong> {clinicalCase.manejo_aps.derivacion.requiere_derivacion ? "Sí" : "No"}</p>
-                      {clinicalCase.manejo_aps.derivacion.tipo_derivacion && (
-                        <p><strong>Tipo:</strong> {clinicalCase.manejo_aps.derivacion.tipo_derivacion}</p>
-                      )}
-                      {clinicalCase.manejo_aps.derivacion.red_flags.length > 0 && (
-                        <div>
-                          <strong>Red flags urgentes:</strong>
-                          <ul className="list-disc ml-5 mt-1">
-                            {clinicalCase.manejo_aps.derivacion.red_flags.map((flag, i) => (
-                              <li key={i}>{flag}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {clinicalCase.manejo_aps.seguimiento.educacion_obligatoria.length > 0 && (
-                        <div>
-                          <strong>Educación obligatoria:</strong>
-                          <ul className="list-disc ml-5 mt-1">
-                            {clinicalCase.manejo_aps.seguimiento.educacion_obligatoria.map((edu, i) => (
-                              <li key={i}>{edu}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  {feedback.manejo.tipo_derivacion_adecuado ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span className="text-sm">Tipo de derivación adecuado</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  {feedback.manejo.manejo_inicial_apropiado ? (
+                    <FaCheckCircle className="text-green-500 shrink-0" />
+                  ) : (
+                    <FaTimesCircle className="text-red-500 shrink-0" />
+                  )}
+                  <span className="text-sm">Manejo inicial apropiado</span>
+                </div>
+                {feedback.manejo.considero_ingreso_programa !== undefined && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    {feedback.manejo.considero_ingreso_programa ? (
+                      <FaCheckCircle className="text-green-500 shrink-0" />
+                    ) : (
+                      <FaTimesCircle className="text-red-500 shrink-0" />
+                    )}
+                    <span className="text-sm">Consideró ingreso a programa</span>
+                  </div>
+                )}
+                {feedback.manejo.metas_terapeuticas_definidas !== undefined && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    {feedback.manejo.metas_terapeuticas_definidas ? (
+                      <FaCheckCircle className="text-green-500 shrink-0" />
+                    ) : (
+                      <FaTimesCircle className="text-red-500 shrink-0" />
+                    )}
+                    <span className="text-sm">Definió metas terapéuticas</span>
+                  </div>
+                )}
+                {feedback.manejo.educacion_y_seguimiento_apropiados !== undefined && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    {feedback.manejo.educacion_y_seguimiento_apropiados ? (
+                      <FaCheckCircle className="text-green-500 shrink-0" />
+                    ) : (
+                      <FaTimesCircle className="text-red-500 shrink-0" />
+                    )}
+                    <span className="text-sm">Educación y seguimiento apropiados</span>
+                  </div>
+                )}
+                {feedback.manejo.considero_factores_psicosociales !== undefined && (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    {feedback.manejo.considero_factores_psicosociales ? (
+                      <FaCheckCircle className="text-green-500 shrink-0" />
+                    ) : (
+                      <FaTimesCircle className="text-red-500 shrink-0" />
+                    )}
+                    <span className="text-sm">Consideró factores psicosociales</span>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Comentario general */}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded mb-4">
+              <p className="text-sm text-gray-700"><strong>Comentario:</strong> {feedback.manejo.comentario}</p>
+            </div>
+
+            {/* Recomendaciones específicas */}
+            {feedback.manejo.recomendaciones_especificas ? (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                  <FaLightbulb className="text-green-600" />
+                  Manejo Correcto para este Caso
+                </h3>
+                <div className="space-y-3 text-sm">
+                  {/* Derivación */}
+                  <div>
+                    <p className="font-semibold text-green-800">Derivación:</p>
+                    <p className="text-gray-700 ml-2">{feedback.manejo.recomendaciones_especificas.derivacion}</p>
+                  </div>
+
+                  {/* Programa APS */}
+                  <div>
+                    <p className="font-semibold text-green-800">Programa APS:</p>
+                    <p className="text-gray-700 ml-2">{feedback.manejo.recomendaciones_especificas.programa_aps}</p>
+                  </div>
+
+                  {/* Metas terapéuticas */}
+                  {feedback.manejo.recomendaciones_especificas.metas_terapeuticas.length > 0 && (
+                    <div>
+                      <p className="font-semibold text-green-800">Metas terapéuticas:</p>
+                      <ul className="list-disc ml-5 text-gray-700">
+                        {feedback.manejo.recomendaciones_especificas.metas_terapeuticas.map((meta: string, i: number) => (
+                          <li key={i}>{meta}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Manejo en CESFAM */}
+                  {feedback.manejo.recomendaciones_especificas.manejo_cesfam.length > 0 && (
+                    <div>
+                      <p className="font-semibold text-green-800">Manejo inicial en CESFAM:</p>
+                      <ul className="list-disc ml-5 text-gray-700">
+                        {feedback.manejo.recomendaciones_especificas.manejo_cesfam.map((accion: string, i: number) => (
+                          <li key={i}>{accion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Educación */}
+                  {feedback.manejo.recomendaciones_especificas.educacion_paciente.length > 0 && (
+                    <div>
+                      <p className="font-semibold text-green-800">Educación al paciente:</p>
+                      <ul className="list-disc ml-5 text-gray-700">
+                        {feedback.manejo.recomendaciones_especificas.educacion_paciente.map((edu: string, i: number) => (
+                          <li key={i}>{edu}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Seguimiento */}
+                  <div>
+                    <p className="font-semibold text-green-800">Seguimiento:</p>
+                    <p className="text-gray-700 ml-2">{feedback.manejo.recomendaciones_especificas.seguimiento}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ No se encontraron recomendaciones específicas en el feedback. 
+                  <br />
+                  <span className="text-xs">Debug: {JSON.stringify(Object.keys(feedback.manejo || {}))}</span>
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -284,7 +359,7 @@ export default function ResultadosPage() {
           </div>
           <div className="space-y-4">
             {Object.entries(feedback.puntajes).map(([key, value]) => {
-              const percentage = (value / 5) * 100;
+              const percentage = Math.max(0, ((value - 1) / 6) * 100);
               return (
                 <div key={key}>
                   <div className="flex justify-between mb-1">
@@ -292,7 +367,7 @@ export default function ResultadosPage() {
                       {puntajeLabels[key as keyof typeof puntajeLabels]}
                     </span>
                     <span className="text-sm font-bold text-[#1098f7]">
-                      {value}/5
+                      {value.toFixed(1)}/7.0
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
