@@ -10,16 +10,12 @@ export default function Navbar() {
   const { user, loading, logout } = useAuth();
 
   const handleLogoClick = () => {
-    if (user) {
-      router.push("/");
-    } else {
-      router.push("/landing");
-    }
+    router.push("/");
   };
 
   const handleLogout = async () => {
     await logout();
-    router.push("/landing");
+    router.push("/");
   };
 
   return (
@@ -28,7 +24,7 @@ export default function Navbar() {
         {/* Logo */}
         <button
           onClick={handleLogoClick}
-          className="flex items-center gap-3 hover:opacity-90 transition-all duration-200 group"
+          className="flex items-center gap-3 hover:opacity-90 transition-all duration-200 group cursor-pointer"
         >
           <div className="bg-white p-2.5 rounded-xl shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
             <FaStethoscope className="w-6 h-6 text-[#1098f7]" />
@@ -44,20 +40,20 @@ export default function Navbar() {
           {!user ? (
             <>
               <button
-                onClick={() => router.push("/landing#features")}
-                className="hidden md:block text-white hover:text-[#001c55] font-medium transition-colors duration-200 hover:bg-white/10 px-3 py-2 rounded-lg"
+                onClick={() => router.push("/#features")}
+                className="hidden md:block text-white hover:text-[#001c55] font-medium transition-colors duration-200 hover:bg-white/10 px-3 py-2 rounded-lg cursor-pointer"
               >
                 Características
               </button>
               <button
-                onClick={() => router.push("/landing#about")}
-                className="hidden md:block text-white hover:text-[#001c55] font-medium transition-colors duration-200 hover:bg-white/10 px-3 py-2 rounded-lg"
+                onClick={() => router.push("/#about")}
+                className="hidden md:block text-white hover:text-[#001c55] font-medium transition-colors duration-200 hover:bg-white/10 px-3 py-2 rounded-lg cursor-pointer"
               >
                 Acerca de
               </button>
               <button
                 onClick={() => router.push("/login")}
-                className="bg-white hover:bg-gray-50 text-[#1098f7] px-4 md:px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
+                className="bg-white hover:bg-gray-50 text-[#1098f7] px-4 md:px-6 py-2 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer"
               >
                 <FaSignInAlt className="w-4 h-4" />
                 <span className="hidden sm:inline">Iniciar Sesión</span>
@@ -67,9 +63,9 @@ export default function Navbar() {
           ) : (
             <>
               <button
-                onClick={() => router.push("/")}
-                className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-                  pathname === "/"
+                onClick={() => router.push("/dashboard")}
+                className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 cursor-pointer ${
+                  pathname === "/dashboard"
                     ? "bg-white text-[#1098f7] shadow-md"
                     : "text-white hover:bg-white/20"
                 }`}
@@ -79,7 +75,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => router.push("/perfil")}
-                className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 cursor-pointer ${
                   pathname === "/perfil"
                     ? "bg-white text-[#1098f7] shadow-md"
                     : "text-white hover:bg-white/20"
@@ -91,7 +87,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium text-sm text-white hover:bg-white/20 transition-all duration-200"
+                className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium text-sm text-white hover:bg-white/20 transition-all duration-200 cursor-pointer"
               >
                 <FaSignOutAlt className="w-4 h-4" />
                 <span className="hidden md:inline">Salir</span>

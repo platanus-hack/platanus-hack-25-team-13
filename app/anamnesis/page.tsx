@@ -690,7 +690,7 @@ export default function AnamnesisPage() {
               <div className="mt-6">
                 <button
                   onClick={handleStartConsulta}
-                  className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                  className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2 cursor-pointer"
                 >
                   <FaStethoscope className="w-4 h-4" />
                   Comenzar Consulta
