@@ -653,8 +653,8 @@ export default function AnamnesisPage() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
+    <div className={`flex flex-col ${currentStep === 0 ? 'bg-white' : 'bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff]'}`}>
+      <div className={`fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 border-t border-gray-200 ${currentStep === 0 ? 'bg-white' : 'bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff]'}`}>
         <div className="w-full max-w-3xl">
           {isReviewMode && (
             <div className="mb-3 text-center">
@@ -667,18 +667,18 @@ export default function AnamnesisPage() {
               </span>
             </div>
           )}
-          <Stepper 
-            steps={steps} 
-            currentStep={currentStep} 
+          <Stepper
+            steps={steps}
+            currentStep={currentStep}
             clickable={isReviewMode}
             onStepClick={isReviewMode ? (stepIndex) => setCurrentStep(stepIndex) : undefined}
           />
         </div>
       </div>
-      
+
       <div className="flex-1 flex flex-col items-center pb-20 pt-4 p-4">
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center w-full">
+          <div className="flex flex-col items-center justify-center w-full bg-white">
             <AntecedentesMedicos
               edad={finalPacienteData.edad}
               sexo={finalPacienteData.sexo}
