@@ -43,31 +43,8 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 px-8 py-4 fixed w-full top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#1098f7] p-2 rounded-lg">
-              <FaStethoscope className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-[#001c55]">MediSim</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <a href="#features" className="text-[#001c55] hover:text-[#1098f7] font-medium transition-colors">
-              Características
-            </a>
-            <a href="#about" className="text-[#001c55] hover:text-[#1098f7] font-medium transition-colors">
-              Acerca de
-            </a>
-            <button className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-300">
-              Iniciar Sesión
-            </button>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section - Full Screen */}
-      <section className="min-h-screen bg-white pt-24 pb-16 px-8 flex items-center">
+      <section className="min-h-screen bg-white pb-16 px-8 flex items-center">
         <div className="max-w-6xl mx-auto w-full">
           {/* Hero Content */}
           <div className="text-center mb-16">

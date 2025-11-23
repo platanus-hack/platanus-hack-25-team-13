@@ -477,16 +477,10 @@ export default function AnamnesisPage() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] flex flex-col">
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center py-3 px-4 bg-gradient-to-br from-[#ffffff] via-[#f0f8ff] to-[#e6f3ff] border-t border-gray-200">
-        <div className="w-full max-w-3xl">
-          <Stepper steps={steps} currentStep={currentStep} />
-        </div>
-      </div>
-      
-      <div className="flex-1 flex flex-col items-center pb-20 pt-4 p-4">
+    <div className="bg-white flex flex-col">
+      <div className="flex-1 flex flex-col items-center py-4 px-4 pb-24">
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] mt-4">
+          <div className="flex flex-col items-center justify-center w-full">
             <AntecedentesMedicos
               edad={finalPacienteData.edad}
               sexo={finalPacienteData.sexo}
@@ -494,10 +488,10 @@ export default function AnamnesisPage() {
               motivoConsulta={finalPacienteData.motivoConsulta}
               contextoIngreso={finalPacienteData.contextoIngreso}
             />
-            <div className="mt-6">
+            <div className="mt-5">
               <button
                 onClick={handleStartConsulta}
-                className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="bg-[#1098f7] hover:bg-[#0d7fd6] text-white font-semibold py-2.5 px-6 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg"
               >
                 <FaStethoscope className="w-4 h-4" />
                 Comenzar Consulta
@@ -601,6 +595,13 @@ export default function AnamnesisPage() {
             <Feedback clinicalCase={finalClinicalCase} feedback={feedbackData} />
           </div>
         )}
+      </div>
+
+      {/* Stepper fixed en la parte inferior */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 py-4 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Stepper steps={steps} currentStep={currentStep} />
+        </div>
       </div>
 
       {/* Modal de Plan de Manejo - Renderizado en un portal */}
