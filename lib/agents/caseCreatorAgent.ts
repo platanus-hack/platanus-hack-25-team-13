@@ -31,10 +31,11 @@ export async function generateClinicalCase(
   // Support both subcategory and apsSubcategoria for backward compatibility
   const subcategory = options.subcategory || options.apsSubcategoria;
 
-  // Usar Assistant API si está configurado y useAssistant no es false
+  // Usar Assistant API solo para APS (ya que tiene documentos MINSAL)
   const shouldUseAssistant =
     options.useAssistant !== false &&
-    process.env.OPENAI_ASSISTANT_ID;
+    process.env.OPENAI_ASSISTANT_ID &&
+    specialty === "aps";
 
   if (shouldUseAssistant) {
     return generateCaseWithAssistantAPI(specialty, difficulty, subcategory);
